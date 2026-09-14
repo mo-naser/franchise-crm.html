@@ -1,0 +1,2854 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة عملاء الفرنشايز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&amp;family=Almarai:wght@400;700&amp;display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#211D18;
+    --bg:#EDE8DC;
+    --surface:#FFFFFF;
+    --surface-2:#F6F2E8;
+    --accent:#A85A2A;
+    --accent-dark:#7C3F1B;
+    --sage:#4E5A3E;   --sage-bg:#E7EBDE;
+    --danger:#9B3B34; --danger-bg:#F3E1DE;
+    --wait:#8A6A2A;   --wait-bg:#F1E7CC;
+    --hesit:#5B5A82;  --hesit-bg:#E7E6F0;
+    --good:#5D7290;   --good-bg:#E4E9F0;
+    --repeat:#3B6E8F;    --repeat-bg:#DCEAF2;
+    --apology:#8A5A3B;   --apology-bg:#F0E3D6;
+    --dismissed:#5A564C; --dismissed-bg:#E7E4DC;
+    --muted:#87806E;
+    --border:#DBD3C0;
+    --gold:#B98A2E;
+    --radius-s:4px;
+    --radius-m:10px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Almarai','Tahoma',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  h1,h2,h3,h4,.brand-mark,.nav-label,.stat-num,button{
+    font-family:'Tajawal','Tahoma',sans-serif;
+  }
+  .app{ display:flex; min-height:100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:230px; flex-shrink:0; background:var(--ink); color:#EDE8DC;
+    display:flex; flex-direction:column; padding:26px 18px; gap:22px;
+  }
+  .brand-mark{ font-size:19px; font-weight:900; line-height:1.35; }
+  .brand-mark span{ display:block; font-family:'Almarai',sans-serif; font-size:12px; font-weight:400; color:#B8B0A0; margin-top:4px; }
+  .nav{ display:flex; flex-direction:column; gap:4px; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:var(--radius-s);
+    cursor:pointer; color:#D8D2C4; font-size:14px; font-weight:700; transition:background .15s ease;
+    border:none; background:none; text-align:right; width:100%; font-family:'Tajawal',sans-serif;
+  }
+  .nav-item svg{ width:17px; height:17px; flex-shrink:0; }
+  .nav-item:hover{ background:rgba(255,255,255,0.06); }
+  .nav-item.active{ background:var(--accent); color:#fff; }
+  .nav-group{ display:flex; flex-direction:column; }
+  .nav-subitems{ display:flex; flex-direction:column; gap:2px; margin:2px 14px 2px 0; padding-right:12px; border-right:2px solid rgba(255,255,255,0.15); }
+  .nav-subitem{ font-size:12.5px; padding:8px 12px; }
+  .sidebar-foot{ margin-top:auto; font-size:11px; color:#8B846F; line-height:1.6; }
+
+  /* ---------- Main ---------- */
+  .main{ flex:1; padding:26px 36px 40px; max-width:1260px; }
+  .link-btn{
+    background:none; border:none; color:var(--accent-dark); font-weight:700; font-size:12.5px;
+    cursor:pointer; font-family:'Tajawal',sans-serif; padding:0; text-decoration:underline;
+  }
+
+  /* ---------- Top-left user menu ---------- */
+  .user-menu-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  .global-search-wrap{ position:relative; flex:1; max-width:360px; min-width:200px; }
+  .global-search-wrap input{
+    width:100%; padding:9px 14px; border-radius:20px; border:1.5px solid var(--border);
+    background:var(--surface); font-family:'Almarai',sans-serif; font-size:12.5px;
+  }
+  .global-search-wrap input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .global-search-dropdown{
+    position:absolute; top:calc(100% + 6px); right:0; left:0; background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; box-shadow:0 10px 26px rgba(0,0,0,.14); z-index:50; max-height:320px; overflow-y:auto;
+  }
+  .global-search-item{ padding:10px 14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12.5px; border-bottom:1px solid var(--border); }
+  .global-search-item:last-child{ border-bottom:none; }
+  .global-search-item:hover{ background:var(--surface-2); }
+  .global-search-empty{ padding:14px; color:var(--muted); font-size:12.5px; text-align:center; }
+  .voice-cmd-btn{
+    background:var(--surface); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px;
+    cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .voice-cmd-btn.listening{ background:var(--danger-bg); border-color:var(--danger); animation:pulseVoice 1s infinite; }
+  @keyframes pulseVoice{ 0%,100%{ opacity:1; } 50%{ opacity:.55; } }
+  .user-menu{ position:relative; }
+  .user-menu-trigger{
+    display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border);
+    border-radius:24px; padding:6px 14px 6px 8px; cursor:pointer; font-family:'Tajawal',sans-serif;
+  }
+  .user-menu-trigger .uname{ font-size:12.5px; font-weight:700; color:var(--ink); }
+  .user-menu-trigger .chevron{ width:12px; height:12px; color:var(--muted); transition:transform .15s ease; }
+  .user-menu.open .user-menu-trigger .chevron{ transform:rotate(180deg); }
+  .user-menu-dropdown{
+    position:absolute; top:calc(100% + 8px); left:0; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; box-shadow:0 10px 28px rgba(0,0,0,.16); padding:18px 16px; min-width:180px;
+    display:flex; flex-direction:column; align-items:center; gap:10px; z-index:40;
+  }
+  .user-menu-dropdown.hidden{ display:none; }
+  .user-menu-dropdown .uname{ font-size:13.5px; font-weight:700; color:var(--ink); }
+  .user-menu-dropdown .logout-btn{
+    width:100%; background:var(--danger-bg); color:var(--danger); border:none; border-radius:8px;
+    padding:9px 0; font-family:'Tajawal',sans-serif; font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  .user-menu-dropdown .logout-btn:hover{ background:var(--danger); color:#fff; }
+  .user-menu-dropdown .manage-link{ font-size:11.5px; }
+  .topbar{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px; gap:16px; flex-wrap:wrap; }
+  .topbar h1{ font-size:22px; font-weight:900; }
+  .topbar p{ color:var(--muted); font-size:13px; margin-top:4px; }
+  .btn{ font-family:'Tajawal',sans-serif; font-weight:700; font-size:14px; border:none; border-radius:var(--radius-s); padding:11px 20px; cursor:pointer; transition:transform .1s, background .15s; }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-primary:hover{ background:var(--accent-dark); }
+  .btn-ghost{ background:transparent; color:var(--ink); border:1.5px solid var(--border); }
+  .btn-ghost:hover{ border-color:var(--ink); }
+  .btn-wa{ background:var(--sage); color:#fff; }
+  .btn-wa:hover{ background:#3c4630; }
+  .btn-sm{ padding:7px 13px; font-size:12px; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
+
+  /* ---------- Stat + brand cards ---------- */
+  .stats-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
+  .stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); padding:14px 16px; }
+  .stat-num{ font-size:23px; font-weight:900; color:var(--accent-dark); }
+  .stat-label{ font-size:12px; color:var(--muted); margin-top:3px; }
+
+  .section-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:4px 0 8px; font-family:'Tajawal',sans-serif; }
+  .brand-cards{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .brand-card{
+    flex:1; min-width:150px; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-m);
+    padding:14px 16px; cursor:pointer; transition:border-color .12s, background .12s;
+  }
+  .brand-card:hover{ border-color:var(--accent); }
+  .brand-card.active{ border-color:var(--accent); background:var(--surface-2); }
+  .brand-card .bname{ font-family:'Tajawal',sans-serif; font-weight:700; font-size:13.5px; }
+  .brand-card .bcount{ font-size:20px; font-weight:900; color:var(--accent-dark); margin-top:4px; }
+
+  /* ---------- Filters ---------- */
+  .filters{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .filters input, .filters select{
+    font-family:'Almarai',sans-serif; padding:9px 12px; border-radius:var(--radius-s);
+    border:1.5px solid var(--border); background:var(--surface); font-size:13px; color:var(--ink);
+  }
+  .filters input{ min-width:210px; }
+  .filters input:focus, .filters select:focus, textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  /* ---------- Table ---------- */
+  .table-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; min-width:760px; }
+  thead th{ text-align:right; font-family:'Tajawal',sans-serif; font-size:11.5px; font-weight:700; color:var(--muted); background:var(--surface-2); padding:11px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:12px 14px; font-size:13px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr{ cursor:pointer; transition:filter .12s; }
+  .file-id{ font-family:'Tajawal',sans-serif; font-weight:700; color:var(--accent-dark); background:var(--surface-2); border-radius:6px; padding:3px 9px; font-size:12px; }
+  .badge{ display:inline-block; font-size:11px; font-weight:700; font-family:'Tajawal',sans-serif; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+  .badge.b-done{ background:var(--sage-bg); color:var(--sage); }
+  .badge.b-pending{ background:var(--wait-bg); color:var(--wait); }
+  .badge.b-nope{ background:var(--danger-bg); color:var(--danger); }
+  .badge.b-hesit{ background:var(--hesit-bg); color:var(--hesit); }
+  .badge.b-repeat{ background:var(--repeat-bg); color:var(--repeat); }
+  .badge.b-apology{ background:var(--apology-bg); color:var(--apology); }
+  .badge.b-dismissed{ background:var(--dismissed-bg); color:var(--dismissed); }
+  .badge.b-excellent{ background:var(--sage-bg); color:var(--sage); }
+  .badge.b-vgood{ background:var(--wait-bg); color:var(--wait); }
+  .badge.b-good{ background:var(--good-bg); color:var(--good); }
+  .badge.b-none{ background:var(--surface-2); color:var(--muted); }
+  .empty{ text-align:center; padding:60px 20px; color:var(--muted); font-size:14px; }
+  .share-icon-btn{
+    background:var(--sage-bg); color:var(--sage); border:none; border-radius:6px; padding:6px 10px;
+    font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Tajawal',sans-serif;
+  }
+  .share-icon-btn:hover{ background:var(--sage); color:#fff; }
+
+  /* ---------- Form ---------- */
+  .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); padding:24px 28px; max-width:740px; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px 18px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column:1 / -1; }
+  .field label{ font-size:12px; font-weight:700; color:var(--ink); font-family:'Tajawal',sans-serif; }
+  .field input, .field select, .field textarea{
+    font-family:'Almarai',sans-serif; padding:10px 12px; border-radius:var(--radius-s);
+    border:1.5px solid var(--border); font-size:13px; background:var(--surface); color:var(--ink);
+  }
+  .radio-group{ display:flex; gap:8px; flex-wrap:wrap; }
+  .radio-chip{ border:1.5px solid var(--border); border-radius:20px; padding:8px 16px; font-size:12.5px; cursor:pointer; user-select:none; transition:all .12s; }
+  .radio-chip.selected{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .circle-row{ display:flex; gap:22px; align-items:center; }
+  .circle-option{ display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13.5px; }
+  .circle-option input[type="radio"]{ width:19px; height:19px; accent-color:var(--accent); cursor:pointer; }
+  .phone-row{ display:flex; gap:8px; }
+  .phone-row select{ flex:0 0 140px; }
+  .phone-row input{ flex:1; }
+  .form-actions{ margin-top:20px; display:flex; gap:10px; }
+  .readonly-box{ background:var(--surface-2); border:1.5px solid var(--border); border-radius:var(--radius-s); padding:10px 12px; font-size:13px; color:var(--muted); }
+
+  /* ---------- Modal ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(33,29,24,.55); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.hidden{ display:none; }
+  .modal{ background:var(--surface); border-radius:var(--radius-m); width:100%; max-width:760px; max-height:88vh; overflow-y:auto; }
+  .modal-head{ padding:20px 26px 0; position:sticky; top:0; background:var(--surface); z-index:2; }
+  .modal-head-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .modal-head h2{ font-size:18px; font-weight:900; }
+  .modal-head .sub{ color:var(--muted); font-size:12px; margin-top:3px; }
+  .modal-close{ background:var(--surface-2); border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:16px; color:var(--ink); flex-shrink:0; }
+  .tabs{ display:flex; gap:4px; margin-top:16px; border-bottom:1px solid var(--border); overflow-x:auto; }
+  .tab-btn{ background:none; border:none; padding:10px 14px; font-family:'Tajawal',sans-serif; font-weight:700; font-size:13px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; }
+  .tab-btn.active{ color:var(--accent-dark); border-bottom-color:var(--accent); }
+  .modal-body{ padding:20px 26px 26px; }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+  .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px 20px; }
+  .info-item .k{ font-size:11px; color:var(--muted); font-weight:700; font-family:'Tajawal',sans-serif; }
+  .info-item .v{ font-size:13.5px; margin-top:2px; }
+  .log-entry{ border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:10px; }
+  .log-entry .row1{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .log-entry .date{ font-size:11px; color:var(--muted); }
+  .log-entry .note{ font-size:13px; line-height:1.55; }
+  .add-log-box{ border:1.5px dashed var(--border); border-radius:8px; padding:14px; margin-top:14px; }
+  .add-log-box h4{ font-size:12.5px; margin-bottom:10px; }
+  .choice-row{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .modal textarea{ width:100%; margin-bottom:10px; font-family:'Almarai',sans-serif; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border); font-size:13px; }
+
+  /* ---------- Reports ---------- */
+  .report-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:22px;}
+  .report-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); padding:16px 18px; }
+  .report-card h3{ font-size:13px; margin-bottom:12px; }
+  .bar-row{ display:flex; align-items:center; gap:8px; margin-bottom:9px; font-size:12px; }
+  .bar-row .lbl{ width:96px; flex-shrink:0; color:var(--ink); }
+  .bar-track{ flex:1; height:8px; background:var(--surface-2); border-radius:4px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--accent); border-radius:4px; }
+  .bar-count{ width:22px; text-align:left; color:var(--muted); font-size:11.5px; }
+
+  /* ---------- Users ---------- */
+  .user-cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .user-card{ background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-m); padding:16px; }
+  .user-card.current{ border-color:var(--accent); }
+  .user-card .uname{ font-family:'Tajawal',sans-serif; font-weight:700; font-size:14.5px; display:flex; align-items:center; gap:8px; }
+  .user-card .umeta{ font-size:11.5px; color:var(--muted); margin:4px 0 10px; }
+  .add-user-form{ display:flex; gap:10px; margin-bottom:22px; max-width:480px; flex-wrap:wrap; }
+  .add-user-form input[type="text"]{ flex:1; min-width:160px; padding:10px 12px; border-radius:var(--radius-s); border:1.5px solid var(--border); font-family:'Almarai',sans-serif; }
+  .avatar{ width:28px; height:28px; border-radius:50%; object-fit:cover; background:var(--surface-2); flex-shrink:0; }
+  .avatar-lg{ width:56px; height:56px; border-radius:50%; object-fit:cover; background:var(--surface-2); }
+  .avatar-placeholder{ width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; font-family:'Tajawal',sans-serif; }
+  .avatar-placeholder-lg{ width:56px; height:56px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; font-family:'Tajawal',sans-serif; }
+  .file-upload-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .sidebar-logo{ max-width:100%; max-height:52px; object-fit:contain; margin-bottom:2px; }
+
+  /* ---------- Share page ---------- */
+  .share-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m); padding:22px 26px; max-width:600px; margin-bottom:18px; }
+  .share-card h3{ font-size:14.5px; margin-bottom:8px; }
+  .share-card p{ font-size:13px; color:var(--muted); line-height:1.7; margin-bottom:14px; }
+
+  /* ---------- Login ---------- */
+  #loginScreen{
+    position:fixed; inset:0; background:var(--ink); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  #loginScreen.hidden{ display:none; }
+  .login-card{ background:var(--surface); border-radius:var(--radius-m); padding:34px 32px; width:100%; max-width:360px; text-align:center; }
+  .login-card img{ max-width:100%; max-height:60px; object-fit:contain; margin-bottom:6px; }
+  .login-card h1{ font-size:19px; font-weight:900; margin-bottom:4px; }
+  .login-card p{ font-size:12.5px; color:var(--muted); margin-bottom:22px; }
+  .login-card .field{ text-align:right; margin-bottom:14px; }
+  .login-card input{ width:100%; padding:11px 13px; border-radius:var(--radius-s); border:1.5px solid var(--border); font-family:'Almarai',sans-serif; font-size:13.5px; }
+  .login-card .btn{ width:100%; margin-top:6px; }
+  .login-error{ color:var(--danger); font-size:12.5px; margin-top:10px; min-height:16px; }
+
+  /* ---------- Quick status menu & row tints ---------- */
+  .kebab-btn{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; width:30px; height:30px; cursor:pointer; font-size:15px; color:var(--ink); line-height:1; }
+  .kebab-btn:hover{ background:var(--border); }
+  .status-menu{ position:absolute; top:100%; left:0; margin-top:4px; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.14); z-index:20; min-width:180px; overflow:hidden; }
+  .status-menu-item{ padding:9px 14px; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .status-menu-item:hover{ background:var(--surface-2); }
+  .status-menu-section-label{ font-size:10px; color:var(--muted); font-weight:700; padding:8px 14px 3px; font-family:'Tajawal',sans-serif; }
+  .status-menu-divider{ height:1px; background:var(--border); margin:4px 0; }
+  tbody tr.row-tint-done{ background:var(--sage-bg); }
+  tbody tr.row-tint-pending{ background:var(--wait-bg); }
+  tbody tr.row-tint-nope{ background:var(--danger-bg); }
+  tbody tr.row-tint-hesit{ background:var(--hesit-bg); }
+  tbody tr.row-tint-repeat{ background:var(--repeat-bg); }
+  tbody tr.row-tint-apology{ background:var(--apology-bg); }
+  tbody tr.row-tint-dismissed{ background:var(--dismissed-bg); }
+  tbody tr:hover{ filter:brightness(0.96); }
+
+  /* ---------- Side panel (message content) ---------- */
+  .side-overlay{ position:fixed; inset:0; background:rgba(33,29,24,.45); z-index:60; }
+  .side-overlay.hidden{ display:none; }
+  .side-panel{ position:absolute; top:0; right:0; height:100%; width:400px; max-width:92vw; background:var(--surface); box-shadow:-10px 0 28px rgba(0,0,0,.18); overflow-y:auto; padding:24px; animation:slideIn .18s ease; }
+  @keyframes slideIn{ from{ transform:translateX(20px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+
+  /* ---------- List manager (settings) ---------- */
+  .list-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .list-chip{ background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:6px 8px 6px 14px; font-size:12.5px; display:flex; align-items:center; gap:8px; }
+  .list-chip button{ background:none; border:none; color:var(--danger); cursor:pointer; font-size:15px; font-weight:700; line-height:1; }
+  .list-add-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .list-add-row input{ padding:8px 10px; border-radius:6px; border:1.5px solid var(--border); font-family:'Almarai',sans-serif; font-size:12.5px; }
+
+  /* ---------- User account cards ---------- */
+  .user-edit-form{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .user-edit-form input{ padding:8px 10px; border-radius:6px; border:1.5px solid var(--border); font-family:'Almarai',sans-serif; font-size:12.5px; }
+
+  @media print{
+    .sidebar, .user-strip, .filters, .topbar button, .btn{ display:none !important; }
+    .main{ padding:0; max-width:100%; }
+    body{ background:#fff; }
+  }
+  @media (max-width:900px){
+    .app{ flex-direction:column; }
+    .sidebar{ width:100%; flex-direction:row; align-items:center; padding:14px 18px; gap:14px; overflow-x:auto; }
+    .brand-mark{ display:none; }
+    .nav{ flex-direction:row; }
+    .sidebar-foot{ display:none; }
+    .main{ padding:20px 16px; }
+    .form-grid{ grid-template-columns:1fr; }
+    .report-grid{ grid-template-columns:1fr; }
+    .info-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="hidden">
+  <div class="login-card" id="loginCard"></div>
+</div>
+
+<div class="app" id="appRoot" style="display: flex;">
+  <aside class="sidebar">
+    <div class="brand-mark" id="sidebarBrandMark">إدارة عملاء الفرنشايز<span>سجل العملاء والمتابعة</span></div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+        الرئيسية
+      </button>
+      <button class="nav-item" data-view="clients">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect></svg>
+        العملاء
+      </button>
+      <div class="nav-group">
+        <button class="nav-item" data-view="brands">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 12 22l-9-9V3h10z"></path><circle cx="7.5" cy="7.5" r="1.5"></circle></svg>
+          العلامات التجارية
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-item nav-subitem" data-view="brandreport">تقرير عملاء العلامات</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-item" data-view="comms">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          التواصل مع العملاء
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-item nav-subitem" data-view="comms">حالة الردود</button>
+          <button class="nav-item nav-subitem" data-view="responsecategories">استجابة العملاء</button>
+          <button class="nav-item nav-subitem" data-view="messages">محتوى الرسائل</button>
+          <button class="nav-item nav-subitem" data-view="sentmessages">إرسال رسالة</button>
+          <button class="nav-item nav-subitem" data-view="contactlog">قائمة التواصل</button>
+        </div>
+      </div>
+      <button class="nav-item" data-view="report">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12" y="8" width="3" height="10"></rect><rect x="17" y="5" width="3" height="13"></rect></svg>
+        التقارير
+      </button>
+      <button class="nav-item" data-view="users">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        المستخدمون
+      </button>
+      <button class="nav-item" data-view="share">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"></line><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line></svg>
+        المشاركة والنسخ
+      </button>
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        الإعدادات
+      </button>
+    </nav>
+    <div class="sidebar-foot">تُحفظ البيانات في هذا الجهاز والمتصفح تلقائياً — تعمل بدون إنترنت.<br><button class="link-btn" id="logoutBtn" style="margin-top:8px;">تسجيل الخروج</button></div>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="user-menu-row">
+      <div class="global-search-wrap">
+        <input type="text" id="globalSearchInput" placeholder="🔍 بحث عن عميل بالاسم أو الجوال..." value="" autocomplete="off">
+        
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="voice-cmd-btn " id="voiceCmdBtn" title="أمر صوتي">🎤</button>
+        <div class="user-menu ">
+          <button class="user-menu-trigger" id="userMenuTrigger">
+            <span class="avatar-placeholder">م</span>
+            <span class="uname">مححمد نصر الدين</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="user-menu-dropdown hidden">
+            <span class="avatar-placeholder-lg">م</span>
+            <span class="uname">مححمد نصر الدين</span>
+            <button class="logout-btn" data-logout="1">تسجيل الخروج</button>
+            <button class="link-btn manage-link" data-goto="users">إدارة الحسابات</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <div class="topbar">
+      <div><h1>الرئيسية</h1><p>نظرة عامة على العملاء والعلامات التجارية وحالة التواصل</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="systemShareBtn">مشاركة النظام</button>
+        <button class="btn btn-ghost" data-goto="share">استيراد / تصدير البيانات</button>
+        <button class="btn btn-primary" id="dashAddClientBtn">+ إضافة عميل</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">1</div><div class="stat-label">إجمالي العملاء</div></div>
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">تم التأكيد</div></div>
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">تم الرد</div></div>
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">لم يتم الرد</div></div>
+      <div class="stat-card"><div class="stat-num">1</div><div class="stat-label">خبرة فرنشايز سابقة</div></div>
+    </div>
+
+    <div class="section-label">العلامات التجارية</div>
+    <div class="brand-cards"><div class="brand-card" data-brand-goto="مشاوي صح">
+      <div class="bname">مشاوي صح</div>
+      <div class="bcount">0</div>
+    </div><div class="brand-card" data-brand-goto="حاشي صح">
+      <div class="bname">حاشي صح</div>
+      <div class="bcount">0</div>
+    </div><div class="brand-card" data-brand-goto="فطورك صح">
+      <div class="bname">فطورك صح</div>
+      <div class="bcount">1</div>
+    </div></div>
+
+    <div class="share-card" style="margin-top:24px; max-width:none;">
+      <h3>قائمة العملاء الكاملة</h3>
+      <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">لعرض أسماء العملاء وبياناتهم، والبحث والفلترة، افتح صفحة "العملاء" من القائمة الجانبية.</p>
+      <button class="btn btn-primary btn-sm" data-goto="clients">فتح قائمة العملاء</button>
+    </div>
+  </main>
+</div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="overlay hidden" id="addOverlay">
+  <div class="modal" id="addModal"></div>
+</div>
+
+<div class="overlay hidden" id="shareFormOverlay">
+  <div class="modal" id="shareFormModal"></div>
+</div>
+
+<div class="overlay hidden" id="brandOverlay">
+  <div class="modal" id="brandModal"></div>
+</div>
+
+<div class="overlay hidden" id="voiceOverlay">
+  <div class="modal" id="voiceModal"></div>
+</div>
+
+<div class="overlay" id="systemShareOverlay">
+  <div class="modal" id="systemShareModal">
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>مشاركة النظام</h2><div class="sub">شارك ملف النظام أو رابطه مع فريقك أو فروعك الأخرى</div></div>
+        <button class="modal-close" id="closeSystemShareBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="share-card">
+        <h3>١. مشاركة ملف النظام مباشرة</h3>
+        <p>هذا يرسل نسخة من الملف نفسه — يعمل فوراً على أي جهاز يستقبله، لكن بياناته منفصلة عن بياناتك (استخدم "استيراد/تصدير البيانات" للمزامنة).</p>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" id="downloadSnapshotBtn">تنزيل نسخة من الملف</button>
+          <button class="btn btn-wa btn-sm" id="nativeShareBtn">مشاركة عبر واتساب / البريد مباشرة</button>
+        </div>
+        
+      </div>
+
+      <div class="share-card">
+        <h3>٢. مشاركة رابط النظام (QR)</h3>
+        <p>إذا رفعت هذا الملف على استضافة ويب (رابط عام)، الصق الرابط هنا لتوليد QR وزر مشاركة سريع.</p>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input type="text" id="systemLinkInput" placeholder="https://example.com/franchise-crm.html" dir="ltr" style="flex:1; padding:9px 12px; border-radius:6px; border:1.5px solid var(--border);">
+          <button class="btn btn-ghost btn-sm" id="generateSystemQrBtn">توليد QR</button>
+        </div>
+        <div id="systemQrResult"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importFileInput" accept="application/json" style="display:none;">
+<input type="file" id="importExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+
+<script>
+/* ============== Default lists (mutable — user can add/edit/delete in Settings) ============== */
+const DEFAULT_LISTS = {
+  brands: ["مشاوي صح","حاشي صح","فطورك صح"],
+  countries: [
+    {name:"السعودية", code:"+966"},
+    {name:"الإمارات", code:"+971"},
+    {name:"عُمان", code:"+968"},
+    {name:"الأردن", code:"+962"},
+    {name:"مصر", code:"+20"}
+  ],
+  entityTypes: ["شركة","مؤسسة","فرد"],
+  commStatuses: ["لم يتم الرد 1","لم يتم الرد 2","تم الرد إيجابي","تم الرد متردد","معتذر"],
+  ratingOptions: ["ممتاز","جيد جدا","جيد"],
+  messageTemplates: [
+    { id:"t1", title:"رسالة تعريفية", text:'مرحباً {name}، نتواصل معكم بخصوص طلب الحصول على فرنشايز علامة "{brand}". يسعدنا الإجابة عن أي استفسار.' },
+    { id:"t2", title:"متابعة", text:"مرحباً {name}، نود المتابعة معكم بخصوص طلبكم لعلامة \"{brand}\" — هل توفر لديكم وقت للحديث قريباً؟" },
+    { id:"t3", title:"تذكير", text:"مرحباً {name}، نذكّركم بطلبكم الخاص بعلامة \"{brand}\"، بانتظار ردكم." }
+  ]
+};
+let BRANDS = [], COUNTRIES = [], ENTITY_TYPES = [], COMM_STATUSES = [], RATING_OPTIONS = [], MESSAGE_TEMPLATES = [];
+
+/* ============== State ============== */
+let clients = [];
+let users = [];
+let currentUserId = null;
+let currentView = "list";
+let activeClientId = null;
+let activeModalTab = "info";
+let clientEditMode = false;
+let pendingRatingCat = null;
+let pendingCommStatus = null;
+let openStatusMenuFor = null;
+let userMenuOpen = false;
+let globalSearchQuery = '';
+let globalSearchOpen = false;
+let voiceRecognition = null;
+let voiceListening = false;
+let sentMessages = [];
+let sentMessagesFilter = { channel:'' };
+let editingUserId = null;
+let listFilters = { q:"", brand:"", status:"", rating:"" };
+let brandReportFilter = { brand:"" };
+let commFilters = { q:"", status:"", rating:"" };
+let addFormState = { entityType:"شركة", triedFranchise:null, brand:"", initialRating:"" };
+let systemLogo = null;
+
+/* ============== Storage (localStorage: works offline on PC & in browser) ============== */
+function loadData(){
+  try{ clients = JSON.parse(localStorage.getItem('fcrm_clients') || '[]'); }catch(e){ clients = []; }
+  try{ users = JSON.parse(localStorage.getItem('fcrm_users') || '[]'); }catch(e){ users = []; }
+  try{ sentMessages = JSON.parse(localStorage.getItem('fcrm_sent_messages') || '[]'); }catch(e){ sentMessages = []; }
+  // migrate/clean up any legacy user records that predate username+password accounts
+  const beforeCount = users.length;
+  users = users.filter(u => u && typeof u.username === 'string' && u.username && typeof u.password === 'string' && u.password);
+  if(users.length !== beforeCount) saveUsers();
+  systemLogo = localStorage.getItem('fcrm_logo') || null;
+  let lists = null;
+  try{ lists = JSON.parse(localStorage.getItem('fcrm_lists')); }catch(e){ lists = null; }
+  lists = lists || {};
+  BRANDS = lists.brands || DEFAULT_LISTS.brands.slice();
+  COUNTRIES = lists.countries || DEFAULT_LISTS.countries.slice();
+  ENTITY_TYPES = lists.entityTypes || DEFAULT_LISTS.entityTypes.slice();
+  COMM_STATUSES = lists.commStatuses || DEFAULT_LISTS.commStatuses.slice();
+  RATING_OPTIONS = lists.ratingOptions || DEFAULT_LISTS.ratingOptions.slice();
+  MESSAGE_TEMPLATES = lists.messageTemplates || DEFAULT_LISTS.messageTemplates.slice();
+
+  // one-time migration: upgrade any earlier default communication-status set to the current one
+  const KNOWN_OLD_COMM_STATUS_SETS = [
+    ["تم الرد","لم يتم الرد","تم الاعتماد","متردد"],
+    ["تم الرد","لم يتم الرد","تكرار المكالمة","تم التأكيد","معتذر","صرف نظر"]
+  ];
+  if(KNOWN_OLD_COMM_STATUS_SETS.some(set => JSON.stringify(COMM_STATUSES) === JSON.stringify(set))){
+    COMM_STATUSES = DEFAULT_LISTS.commStatuses.slice();
+    saveLists();
+  }
+}
+function saveClients(){ localStorage.setItem('fcrm_clients', JSON.stringify(clients)); }
+function saveSentMessages(){ localStorage.setItem('fcrm_sent_messages', JSON.stringify(sentMessages)); }
+function logSentMessage(c, channel, templateTitle, text){
+  sentMessages.push({
+    id: 'm'+Date.now()+Math.random().toString(36).slice(2,6),
+    date: new Date().toISOString(),
+    clientId: c.id,
+    clientName: c.name,
+    clientPhone: (c.countryCode||'') + ' ' + (c.phone||''),
+    channel,
+    templateTitle: templateTitle || '',
+    text
+  });
+  saveSentMessages();
+}
+function saveUsers(){ localStorage.setItem('fcrm_users', JSON.stringify(users)); }
+function saveLogo(){ if(systemLogo) localStorage.setItem('fcrm_logo', systemLogo); else localStorage.removeItem('fcrm_logo'); }
+function saveLists(){
+  localStorage.setItem('fcrm_lists', JSON.stringify({
+    brands:BRANDS, countries:COUNTRIES, entityTypes:ENTITY_TYPES, commStatuses:COMM_STATUSES, ratingOptions:RATING_OPTIONS, messageTemplates:MESSAGE_TEMPLATES
+  }));
+}
+
+/* ============== Login (per-account username/password) ============== */
+function applyLogoDisplays(){
+  const sidebarMark = document.getElementById('sidebarBrandMark');
+  if(sidebarMark){
+    sidebarMark.innerHTML = systemLogo
+      ? `<img src="${systemLogo}" class="sidebar-logo" alt="شعار النظام">`
+      : `إدارة عملاء الفرنشايز<span>سجل العملاء والمتابعة</span>`;
+  }
+}
+function logoTagHtml(){
+  return systemLogo ? `<img src="${systemLogo}" style="max-width:100%;max-height:60px;object-fit:contain;margin-bottom:6px;">` : '';
+}
+function renderLoginScreen(){
+  const card = document.getElementById('loginCard');
+  if(users.length === 0){
+    card.innerHTML = `
+      ${logoTagHtml()}
+      <h1>إنشاء أول حساب</h1>
+      <p>لا يوجد مستخدمون بعد. أنشئ أول حساب لتسجيل الدخول وإدارة النظام.</p>
+      <form id="setupForm">
+        <div class="field"><input type="text" id="setupName" placeholder="الاسم الكامل" required></div>
+        <div class="field"><input type="text" id="setupUsername" placeholder="اسم المستخدم (للدخول)" required></div>
+        <div class="field"><input type="password" id="setupPassword" placeholder="كلمة المرور" required></div>
+        <button type="submit" class="btn btn-primary">إنشاء الحساب والدخول</button>
+        <div class="login-error" id="loginError"></div>
+      </form>`;
+    document.getElementById('setupForm').onsubmit = (e)=>{
+      e.preventDefault();
+      const name = document.getElementById('setupName').value.trim();
+      const username = document.getElementById('setupUsername').value.trim();
+      const password = document.getElementById('setupPassword').value;
+      if(!name || !username || !password) return;
+      const u = { id:'u'+Date.now(), name, username, password, avatar:null, createdAt:new Date().toISOString() };
+      users.push(u);
+      saveUsers();
+      currentUserId = u.id;
+      localStorage.setItem('fcrm_logged_in_user', u.id);
+      showApp();
+    };
+  }else{
+    card.innerHTML = `
+      ${logoTagHtml()}
+      <h1>نظام إدارة عملاء الفرنشايز</h1>
+      <p>يرجى تسجيل الدخول للمتابعة</p>
+      <form id="loginForm">
+        <div class="field"><input type="text" id="loginUser" placeholder="اسم المستخدم" required autocomplete="username"></div>
+        <div class="field"><input type="password" id="loginPass" placeholder="كلمة المرور" required autocomplete="current-password"></div>
+        <button type="submit" class="btn btn-primary">دخول</button>
+        <div class="login-error" id="loginError"></div>
+      </form>
+      <button class="link-btn" id="forgotAccessBtn" style="margin-top:14px;">نسيت بيانات الدخول؟ إعادة تعيين الحسابات</button>`;
+    document.getElementById('forgotAccessBtn').onclick = ()=>{
+      if(confirm('سيتم حذف جميع حسابات المستخدمين على هذا الجهاز والعودة لشاشة إنشاء حساب جديد. بيانات العملاء نفسها لن تُحذف. هل تريد المتابعة؟')){
+        users = [];
+        saveUsers();
+        renderLoginScreen();
+      }
+    };
+    document.getElementById('loginForm').onsubmit = (e)=>{
+      e.preventDefault();
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value;
+      const match = users.find(x=>x.username===u && x.password===p);
+      if(match){
+        currentUserId = match.id;
+        localStorage.setItem('fcrm_logged_in_user', match.id);
+        document.getElementById('loginError').textContent = '';
+        showApp();
+      }else{
+        document.getElementById('loginError').textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+      }
+    };
+  }
+}
+function showLogin(){
+  currentUserId = null;
+  renderLoginScreen();
+  applyLogoDisplays();
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('appRoot').style.display = 'none';
+}
+function showApp(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appRoot').style.display = 'flex';
+  applyLogoDisplays();
+  currentView = 'list';
+  render();
+}
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  localStorage.removeItem('fcrm_logged_in_user');
+  showLogin();
+});
+
+
+/* ============== Helpers ============== */
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('ar-SA', {year:'numeric', month:'short', day:'numeric'}) + ' - ' + d.toLocaleTimeString('ar-SA', {hour:'2-digit', minute:'2-digit'});
+}
+function nextFileId(){
+  let max = 0;
+  clients.forEach(c=>{ const n = parseInt(c.id, 10); if(!isNaN(n) && n > max) max = n; });
+  return String(max + 1).padStart(2,'0');
+}
+function countryNameFromCode(code){ const f = COUNTRIES.find(c=>c.code===code); return f ? f.name : code; }
+function latestComm(c){ return (c.communications && c.communications.length) ? c.communications[c.communications.length-1] : null; }
+function latestRating(c){ return (c.ratings && c.ratings.length) ? c.ratings[c.ratings.length-1] : null; }
+function currentUserName(){ const u = users.find(x=>x.id===currentUserId); return u ? u.name : null; }
+function commBadgeClass(status){
+  if(status==='تم الرد إيجابي' || status==='تم التأكيد' || status==='تم الاعتماد') return 'b-done';
+  if(status==='تم الرد متردد' || status==='متردد') return 'b-hesit';
+  if(status==='لم يتم الرد 1' || status==='لم يتم الرد') return 'b-nope';
+  if(status==='لم يتم الرد 2' || status==='تكرار المكالمة') return 'b-repeat';
+  if(status==='معتذر') return 'b-apology';
+  if(status==='صرف نظر') return 'b-dismissed';
+  if(status==='تم الرد') return 'b-pending';
+  return 'b-none';
+}
+function rowTintClass(status){
+  if(status==='تم الرد إيجابي' || status==='تم التأكيد' || status==='تم الاعتماد') return 'row-tint-done';
+  if(status==='تم الرد متردد' || status==='متردد') return 'row-tint-hesit';
+  if(status==='لم يتم الرد 1' || status==='لم يتم الرد') return 'row-tint-nope';
+  if(status==='لم يتم الرد 2' || status==='تكرار المكالمة') return 'row-tint-repeat';
+  if(status==='معتذر') return 'row-tint-apology';
+  if(status==='صرف نظر') return 'row-tint-dismissed';
+  if(status==='تم الرد') return 'row-tint-pending';
+  return '';
+}
+function statusOptionStyle(status){
+  if(status==='تم الرد إيجابي' || status==='تم التأكيد' || status==='تم الاعتماد') return 'background:var(--sage-bg); color:var(--sage);';
+  if(status==='تم الرد متردد' || status==='متردد') return 'background:var(--hesit-bg); color:var(--hesit);';
+  if(status==='لم يتم الرد 1' || status==='لم يتم الرد') return 'background:var(--danger-bg); color:var(--danger);';
+  if(status==='لم يتم الرد 2' || status==='تكرار المكالمة') return 'background:var(--repeat-bg); color:var(--repeat);';
+  if(status==='معتذر') return 'background:var(--apology-bg); color:var(--apology);';
+  if(status==='صرف نظر') return 'background:var(--dismissed-bg); color:var(--dismissed);';
+  if(status==='تم الرد') return 'background:var(--wait-bg); color:var(--wait);';
+  return '';
+}
+function statusMenuHtml(clientId){
+  if(openStatusMenuFor !== clientId) return '';
+  const statusItems = COMM_STATUSES.map(s=>`<div class="status-menu-item" data-quickstatus="${clientId}|${s}" style="${statusOptionStyle(s)}">${esc(s)}</div>`).join('');
+  return `<div class="status-menu">
+    <div class="status-menu-section-label">تحديث حالة التواصل</div>
+    ${statusItems}
+    <div class="status-menu-divider"></div>
+    <div class="status-menu-item" data-quickedit="${clientId}">تعديل بيانات العميل</div>
+    <div class="status-menu-item" data-quickdelete="${clientId}" style="color:var(--danger);">حذف العميل</div>
+  </div>`;
+}
+function ratingBadgeClass(cat){
+  if(cat==='ممتاز') return 'b-excellent';
+  if(cat==='جيد جدا') return 'b-vgood';
+  if(cat==='جيد') return 'b-good';
+  return 'b-none';
+}
+function fillTemplate(text, c){
+  return String(text)
+    .replace(/\{name\}/g, c.name || '')
+    .replace(/\{brand\}/g, c.brand || '')
+    .replace(/\{company\}/g, c.companyName || '')
+    .replace(/\{activity\}/g, c.activity || '');
+}
+function waLinkWithText(c, text){
+  const digits = (c.countryCode + c.phone).replace(/\D/g,'');
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+function gmailComposeLink(to, subject, body){
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+function waLink(c){
+  const defaultTpl = MESSAGE_TEMPLATES[0];
+  const msg = defaultTpl
+    ? fillTemplate(defaultTpl.text, c)
+    : `مرحباً ${c.name}، نتواصل معكم بخصوص طلب الحصول على فرنشايز علامة "${c.brand}". (ملف رقم ${c.id})`;
+  return waLinkWithText(c, msg);
+}
+function readFileAsDataURL(file, cb){
+  const reader = new FileReader();
+  reader.onload = (e)=> cb(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+/* ============== Share the system itself (QR/link/file) ============== */
+function downloadSystemSnapshot(){
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'franchise-crm.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+async function shareSystemFileNatively(){
+  try{
+    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    const file = new File([html], 'franchise-crm.html', {type:'text/html'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        files:[file],
+        title:'نظام إدارة عملاء الفرنشايز',
+        text:'ملف نظام إدارة عملاء الفرنشايز'
+      });
+    }else{
+      alert('مشاركة الملف مباشرة غير مدعومة في هذا المتصفح/الجهاز. استخدم زر "تنزيل نسخة من الملف" ثم أرفقه يدوياً في واتساب أو البريد.');
+    }
+  }catch(err){
+    if(err && err.name !== 'AbortError'){
+      alert('تعذّرت المشاركة المباشرة. استخدم زر "تنزيل نسخة من الملف" ثم أرفقه يدوياً.');
+    }
+  }
+}
+function renderSystemShareModal(){
+  const modal = document.getElementById('systemShareModal');
+  const canNativeShare = !!(navigator.share);
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>مشاركة النظام</h2><div class="sub">شارك ملف النظام أو رابطه مع فريقك أو فروعك الأخرى</div></div>
+        <button class="modal-close" id="closeSystemShareBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="share-card">
+        <h3>١. مشاركة ملف النظام مباشرة</h3>
+        <p>هذا يرسل نسخة من الملف نفسه — يعمل فوراً على أي جهاز يستقبله، لكن بياناته منفصلة عن بياناتك (استخدم "استيراد/تصدير البيانات" للمزامنة).</p>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" id="downloadSnapshotBtn">تنزيل نسخة من الملف</button>
+          ${canNativeShare ? `<button class="btn btn-wa btn-sm" id="nativeShareBtn">مشاركة عبر واتساب / البريد مباشرة</button>` : ''}
+        </div>
+        ${!canNativeShare ? `<p style="color:var(--muted); font-size:11.5px; margin-top:10px;">بعد التنزيل: افتح واتساب ويب أو تطبيق البريد، وأرفق الملف الذي نزّلته كأي مرفق عادي.</p>` : ''}
+      </div>
+
+      <div class="share-card">
+        <h3>٢. مشاركة رابط النظام (QR)</h3>
+        <p>إذا رفعت هذا الملف على استضافة ويب (رابط عام)، الصق الرابط هنا لتوليد QR وزر مشاركة سريع.</p>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input type="text" id="systemLinkInput" placeholder="https://example.com/franchise-crm.html" dir="ltr" style="flex:1; padding:9px 12px; border-radius:6px; border:1.5px solid var(--border);">
+          <button class="btn btn-ghost btn-sm" id="generateSystemQrBtn">توليد QR</button>
+        </div>
+        <div id="systemQrResult"></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('closeSystemShareBtn').onclick = closeSystemShareModal;
+  document.getElementById('downloadSnapshotBtn').onclick = downloadSystemSnapshot;
+  const nativeBtn = document.getElementById('nativeShareBtn');
+  if(nativeBtn) nativeBtn.onclick = shareSystemFileNatively;
+  document.getElementById('generateSystemQrBtn').onclick = ()=>{
+    const link = document.getElementById('systemLinkInput').value.trim();
+    if(!link){ alert('يرجى إدخال الرابط أولاً'); return; }
+    document.getElementById('systemQrResult').innerHTML = `
+      <div style="text-align:center; margin-top:10px;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}" style="border:1px solid var(--border); border-radius:8px; width:200px; height:200px; margin-bottom:12px;" alt="QR">
+        <div class="btn-row" style="justify-content:center;">
+          <button class="btn btn-ghost btn-sm" id="copySystemLinkBtn">نسخ الرابط</button>
+          <a class="btn btn-wa btn-sm" href="https://wa.me/?text=${encodeURIComponent(link)}" target="_blank" rel="noopener">مشاركة عبر واتساب</a>
+        </div>
+      </div>
+    `;
+    document.getElementById('copySystemLinkBtn').onclick = ()=>{
+      navigator.clipboard?.writeText(link).then(()=> alert('تم نسخ الرابط.')).catch(()=> alert('تعذّر النسخ التلقائي، انسخ الرابط يدوياً.'));
+    };
+  };
+  document.getElementById('systemShareOverlay').classList.remove('hidden');
+}
+function closeSystemShareModal(){
+  document.getElementById('systemShareOverlay').classList.add('hidden');
+}
+
+/* ============== Share client-registration form (QR/link) ============== */
+function getPublicFormLink(){
+  const base = (location.origin && location.origin !== 'null')
+    ? location.origin + location.pathname
+    : location.href.split('?')[0].split('#')[0];
+  return base + '?public=1';
+}
+function encodeClientCode(data){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+}
+function decodeClientCode(code){
+  return JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+}
+function openShareFormModal(){
+  const link = getPublicFormLink();
+  const modal = document.getElementById('shareFormModal');
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>مشاركة نموذج تسجيل عميل</h2><div class="sub">شارك الرابط أو رمز QR مع العميل ليعبئ بياناته بنفسه</div></div>
+        <button class="modal-close" id="closeShareFormBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(link)}" style="margin-bottom:16px; border:1px solid var(--border); border-radius:8px; width:220px; height:220px;" alt="QR Code">
+      <div style="margin-bottom:12px;">
+        <input type="text" id="shareFormLink" readonly value="${esc(link)}" style="width:100%; padding:10px; border-radius:6px; border:1.5px solid var(--border); direction:ltr; font-size:12.5px; text-align:center;">
+      </div>
+      <button class="btn btn-primary btn-sm" id="copyShareFormLink">نسخ الرابط</button>
+      <p style="color:var(--muted); font-size:11.5px; margin-top:16px; line-height:1.7; text-align:right;">ملاحظة: لكي يعمل الرابط من جهاز العميل، يجب رفع هذا الملف على استضافة ويب يمكن الوصول إليها من أي مكان (وليس فقط فتحه محلياً على جهازك).</p>
+      <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
+      <h3 style="font-size:13.5px; margin-bottom:8px; text-align:right;">استيراد بيانات عميل مستلمة</h3>
+      <p style="color:var(--muted); font-size:12px; margin-bottom:10px; text-align:right;">الصق الكود الذي أرسله لك العميل بعد تعبئة النموذج:</p>
+      <textarea id="importCodeInput" rows="3" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--border); font-family:monospace; font-size:11px; margin-bottom:10px;"></textarea>
+      <button class="btn btn-ghost btn-sm" id="extractCodeBtn">استخراج البيانات ومتابعة الإضافة</button>
+    </div>
+  `;
+  document.getElementById('closeShareFormBtn').onclick = closeShareFormModal;
+  document.getElementById('copyShareFormLink').onclick = ()=>{
+    const input = document.getElementById('shareFormLink');
+    input.select();
+    try{ document.execCommand('copy'); alert('تم نسخ الرابط.'); }catch(e){ alert('تعذّر النسخ التلقائي، انسخ الرابط يدوياً.'); }
+  };
+  document.getElementById('extractCodeBtn').onclick = ()=>{
+    const raw = document.getElementById('importCodeInput').value.trim();
+    if(!raw){ alert('يرجى لصق الكود المستلم أولاً'); return; }
+    try{
+      const data = decodeClientCode(raw);
+      closeShareFormModal();
+      openAddClientModal(data);
+    }catch(err){
+      alert('تعذّر قراءة الكود. تأكد من نسخه ولصقه كاملاً دون نقص.');
+    }
+  };
+  document.getElementById('shareFormOverlay').classList.remove('hidden');
+}
+function closeShareFormModal(){
+  document.getElementById('shareFormOverlay').classList.add('hidden');
+}
+
+/* ============== Public client self-registration form ============== */
+function renderPublicForm(){
+  document.body.innerHTML = `
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bg); font-family:'Almarai',sans-serif;">
+      <div class="form-card" style="max-width:640px; width:100%;">
+        <h1 style="font-size:20px; font-weight:900; margin-bottom:6px; font-family:'Tajawal',sans-serif;">نموذج تسجيل بيانات العميل</h1>
+        <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">يرجى تعبئة بياناتك بدقة، ثم اتباع التعليمات في نهاية النموذج لإرسالها.</p>
+        <form id="publicForm">
+          <div class="form-grid">
+            <div class="field full"><label>اسم العميل</label><input type="text" name="name" required></div>
+            <div class="field full"><label>نوع الجهة</label>
+              <select name="entityType">${ENTITY_TYPES.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>اسم الشركة / المنشأة</label><input type="text" name="companyName"></div>
+            <div class="field"><label>رقم السجل التجاري</label><input type="text" name="crNumber"></div>
+            <div class="field full"><label>النشاط الحالي</label><input type="text" name="activity" required></div>
+            <div class="field full">
+              <label>رقم الجوال</label>
+              <div class="phone-row">
+                <select name="countryCode">${COUNTRIES.map(c=>`<option value="${c.code}">${esc(c.name)} (${c.code})</option>`).join('')}</select>
+                <input type="tel" name="phone" required dir="ltr">
+              </div>
+            </div>
+            <div class="field full"><label>البريد الإلكتروني (اختياري)</label><input type="email" name="email" dir="ltr"></div>
+            <div class="field full">
+              <label>هل سبق التعامل بنظام الفرنشايز؟</label>
+              <div class="circle-row" id="pubFranchiseGroup">
+                <label class="circle-option"><input type="radio" name="franchise" value="yes"> نعم</label>
+                <label class="circle-option"><input type="radio" name="franchise" value="no" checked> لا</label>
+              </div>
+            </div>
+            <div class="field full" id="pubPrevBrandField" style="display:none;">
+              <label>العلامة التي حصل عليها سابقاً في الفرنشايز</label>
+              <input type="text" name="prevFranchiseBrand">
+            </div>
+            <div class="field full">
+              <label>العلامة التجارية المطلوبة</label>
+              <div class="radio-group" id="pubBrandGroup">
+                ${BRANDS.map((b,i)=>`<div class="radio-chip ${i===0?'selected':''}" data-brand="${esc(b)}">${esc(b)}</div>`).join('')}
+              </div>
+            </div>
+            <div class="field full"><label>ملاحظات (اختياري)</label><textarea name="notes" rows="3"></textarea></div>
+          </div>
+          <div class="form-actions"><button type="submit" class="btn btn-primary">إرسال البيانات</button></div>
+        </form>
+      </div>
+    </div>
+  `;
+  let pubBrand = BRANDS[0] || '';
+  document.querySelectorAll('#pubBrandGroup .radio-chip').forEach(ch=>{
+    ch.onclick = ()=>{
+      document.querySelectorAll('#pubBrandGroup .radio-chip').forEach(x=>x.classList.remove('selected'));
+      ch.classList.add('selected');
+      pubBrand = ch.dataset.brand;
+    };
+  });
+  document.querySelectorAll('#pubFranchiseGroup input').forEach(r=>{
+    r.onchange = ()=>{ document.getElementById('pubPrevBrandField').style.display = (r.value==='yes') ? 'flex' : 'none'; };
+  });
+  document.getElementById('publicForm').onsubmit = (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const triedFranchise = f.franchise.value === 'yes';
+    const data = {
+      name: f.name.value.trim(),
+      entityType: f.entityType.value,
+      companyName: f.companyName.value.trim(),
+      crNumber: f.crNumber.value.trim(),
+      activity: f.activity.value.trim(),
+      countryCode: f.countryCode.value,
+      phone: f.phone.value.trim(),
+      email: f.email.value.trim(),
+      triedFranchise,
+      prevFranchiseBrand: triedFranchise ? f.prevFranchiseBrand.value.trim() : '',
+      brand: pubBrand,
+      notes: f.notes.value.trim()
+    };
+    if(!data.name || !data.phone || !data.activity){ alert('يرجى تعبئة الاسم ورقم الجوال والنشاط على الأقل'); return; }
+    renderPublicResult(encodeClientCode(data));
+  };
+}
+function renderPublicResult(code){
+  document.body.innerHTML = `
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bg); font-family:'Almarai',sans-serif;">
+      <div class="form-card" style="max-width:520px; width:100%; text-align:center;">
+        <h1 style="font-size:19px; font-weight:900; margin-bottom:10px; font-family:'Tajawal',sans-serif;">تم إعداد بياناتك ✓</h1>
+        <p style="color:var(--muted); font-size:13px; margin-bottom:18px; line-height:1.8;">انسخ الكود أدناه وأرسله لصاحب النظام عبر واتساب أو البريد الإلكتروني ليضيف بياناتك مباشرة.</p>
+        <textarea id="resultCode" readonly rows="5" style="width:100%; font-family:monospace; font-size:11px; padding:10px; border-radius:8px; border:1.5px solid var(--border); margin-bottom:14px;">${code}</textarea>
+        <div class="btn-row" style="justify-content:center;">
+          <button class="btn btn-primary" id="copyCodeBtn">نسخ الكود</button>
+          <button class="btn btn-wa" id="waCodeBtn">إرسال عبر واتساب</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('copyCodeBtn').onclick = ()=>{
+    const ta = document.getElementById('resultCode');
+    ta.select();
+    try{ document.execCommand('copy'); alert('تم نسخ الكود.'); }catch(e){ alert('تعذّر النسخ التلقائي، انسخ الكود يدوياً.'); }
+  };
+  document.getElementById('waCodeBtn').onclick = ()=>{
+    const msg = 'بيانات تسجيل عميل جديد:\n' + code;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+}
+
+/* ============== Message content page (under التواصل مع العملاء) ============== */
+let editingTemplateIdx = null;
+function renderMessagesView(){
+  const list = MESSAGE_TEMPLATES.map((t, idx)=>{
+    if(editingTemplateIdx === idx){
+      return `
+        <form class="log-entry" data-edittemplateform="${idx}">
+          <input type="text" name="title" value="${esc(t.title)}" required style="width:100%; margin-bottom:8px; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border); font-family:'Almarai',sans-serif;">
+          <textarea name="text" rows="3" required style="width:100%; margin-bottom:8px; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border); font-family:'Almarai',sans-serif;">${esc(t.text)}</textarea>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary btn-sm">حفظ</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-canceltemplateedit="1">إلغاء</button>
+          </div>
+        </form>
+      `;
+    }
+    return `
+      <div class="log-entry">
+        <div class="row1">
+          <strong style="font-size:13px;">${esc(t.title)}</strong>
+          <span class="btn-row">
+            <button class="link-btn" data-edittemplate="${idx}">تعديل</button>
+            <button class="link-btn" style="color:var(--danger);" data-removetemplate="${idx}">حذف</button>
+          </span>
+        </div>
+        <div class="note">${esc(t.text)}</div>
+      </div>
+    `;
+  }).join('') || `<p style="color:var(--muted); font-size:13px;">لا توجد قوالب رسائل بعد. أضف أول قالب أدناه.</p>`;
+
+  return `
+    <div class="topbar">
+      <div><h1>محتوى الرسائل</h1><p>إدارة قوالب الرسائل الجاهزة المستخدمة عند إرسال الرسائل للعملاء</p></div>
+      <button class="btn btn-ghost" data-goto="sentmessages">إرسال رسالة</button>
+    </div>
+
+    <div class="share-card" style="max-width:640px;">
+      <h3>قوالب الرسائل</h3>
+      <p style="color:var(--muted); font-size:12px; margin-bottom:14px; line-height:1.7;">استخدم {name} لاسم العميل، {brand} للعلامة التجارية، {company} لاسم الشركة، {activity} للنشاط — تُستبدل تلقائياً باسم كل عميل عند الإرسال.</p>
+      ${list}
+      <form id="addTemplateForm" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="newTemplateTitle" placeholder="عنوان القالب (مثال: متابعة)" required>
+        <textarea id="newTemplateText" rows="3" placeholder='نص الرسالة، مثال: مرحباً {name}...' required></textarea>
+        <button type="submit" class="btn btn-primary btn-sm" style="align-self:flex-start;">إضافة قالب</button>
+      </form>
+    </div>
+  `;
+}
+
+/* ============== Sent Messages log ============== */
+function renderContactLogView(){
+  const filtered = sentMessages.filter(m=> !sentMessagesFilter.channel || m.channel === sentMessagesFilter.channel).slice().reverse();
+  const rows = filtered.map(m=>`
+    <tr>
+      <td>${fmtDate(m.date)}</td>
+      <td>${esc(m.clientName)}</td>
+      <td dir="ltr" style="text-align:right;">${esc(m.clientPhone || '—')}</td>
+      <td><span class="badge ${m.channel==='واتساب' ? 'b-done' : 'b-good'}">${esc(m.channel)}</span></td>
+      <td>${esc(m.templateTitle || '—')}</td>
+      <td style="max-width:320px; white-space:normal;">${esc(m.text)}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>قائمة التواصل</h1><p>كل عميل تم إرسال رسالة له ينتقل إلى هذه القائمة — سجل كل الرسائل المرسلة من هذا الجهاز</p></div>
+    </div>
+    <div class="filters">
+      <select id="sentChannelFilter">
+        <option value="">كل القنوات</option>
+        <option value="واتساب" ${sentMessagesFilter.channel==='واتساب'?'selected':''}>واتساب</option>
+        <option value="إيميل" ${sentMessagesFilter.channel==='إيميل'?'selected':''}>البريد الإلكتروني</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا توجد رسائل مرسلة بعد.</div>` : `
+      <table>
+        <thead><tr><th>التاريخ</th><th>العميل</th><th>رقم الجوال</th><th>القناة</th><th>القالب</th><th>نص الرسالة</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+/* ============== إرسال رسالة (per-client send table) ============== */
+let sendMessagesFilter = { q:"", brand:"" };
+function renderSendMessagesView(){
+  const filtered = clients.filter(c=>{
+    const q = sendMessagesFilter.q.trim();
+    const matchesQ = !q || c.name.includes(q) || (c.phone||'').includes(q);
+    const matchesBrand = !sendMessagesFilter.brand || c.brand === sendMessagesFilter.brand;
+    return matchesQ && matchesBrand;
+  });
+
+  if(MESSAGE_TEMPLATES.length===0){
+    return `
+      <div class="topbar"><div><h1>إرسال رسالة</h1><p>أرسل رسالة لأي عميل مباشرة عبر واتساب أو البريد الإلكتروني</p></div></div>
+      <div class="table-wrap"><div class="empty">أضف قالب رسالة واحداً على الأقل من صفحة "محتوى الرسائل" لتفعيل الإرسال.</div></div>
+    `;
+  }
+
+  const templateOptions = MESSAGE_TEMPLATES.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('');
+  const rows = filtered.map(c=>`
+    <tr data-clientrow="${c.id}">
+      <td><span class="file-id">${c.id}</span></td>
+      <td>${esc(c.name)}</td>
+      <td dir="ltr" style="text-align:right;">${esc(c.countryCode)} ${esc(c.phone)}</td>
+      <td>${esc(c.brand)}</td>
+      <td><select class="send-row-template">${templateOptions}</select></td>
+      <td>
+        <select class="send-row-channel">
+          <option value="whatsapp">واتساب</option>
+          <option value="email" ${!c.email?'disabled':''}>البريد الإلكتروني${!c.email?' (لا يوجد إيميل)':''}</option>
+        </select>
+      </td>
+      <td><button class="btn btn-primary btn-sm" data-sendrow="${c.id}">إرسال</button></td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>إرسال رسالة</h1><p>اختر لكل عميل محتوى الرسالة وطريقة الإرسال، ثم اضغط إرسال — سينتقل العميل بعدها إلى "قائمة التواصل"</p></div>
+    </div>
+    <div class="filters">
+      <input type="text" id="sendSearchInput" placeholder="بحث بالاسم أو الجوال" value="${esc(sendMessagesFilter.q)}">
+      <select id="sendBrandFilter">
+        <option value="">كل العلامات التجارية</option>
+        ${BRANDS.map(b=>`<option value="${esc(b)}" ${sendMessagesFilter.brand===b?'selected':''}>${esc(b)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا يوجد عملاء مطابقون.</div>` : `
+      <table>
+        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>الجوال</th><th>العلامة</th><th>المحتوى</th><th>طريقة الإرسال</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+/* ============== Router ============== */
+function setView(v){
+  currentView = v;
+  userMenuOpen = false;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  render();
+}
+
+/* ============== Voice commands ============== */
+function getVoiceTargets(){
+  return [
+    { label:"إضافة عميل", keywords:["اضافة عميل","إضافة عميل","عميل جديد","ضيف عميل","اضف عميل"], action:()=> openAddClientModal() },
+    { label:"الرئيسية", keywords:["الرئيسية","الداشبورد","الرئيسيه"], action:()=> setView('list') },
+    { label:"العملاء", keywords:["العملاء","قائمة العملاء"], action:()=> setView('clients') },
+    { label:"العلامات التجارية", keywords:["العلامات التجارية","العلامات","البراندات"], action:()=> setView('brands') },
+    { label:"تقرير عملاء العلامات", keywords:["تقرير عملاء العلامات","تقرير العلامات"], action:()=> setView('brandreport') },
+    { label:"حالة الردود", keywords:["حالة الردود","الردود","حالة التواصل"], action:()=> setView('comms') },
+    { label:"استجابة العملاء", keywords:["استجابة العملاء","استجابة"], action:()=> setView('responsecategories') },
+    { label:"محتوى الرسائل", keywords:["محتوى الرسائل","القوالب","قوالب الرسائل"], action:()=> setView('messages') },
+    { label:"إرسال رسالة", keywords:["إرسال رسالة","ارسال رسالة"], action:()=> setView('sentmessages') },
+    { label:"قائمة التواصل", keywords:["قائمة التواصل"], action:()=> setView('contactlog') },
+    { label:"التقارير", keywords:["التقارير","تقرير"], action:()=> setView('report') },
+    { label:"المستخدمون", keywords:["المستخدمون","الحسابات","المستخدمين"], action:()=> setView('users') },
+    { label:"المشاركة والنسخ", keywords:["المشاركة","النسخ الاحتياطي","النسخ"], action:()=> setView('share') },
+    { label:"الإعدادات", keywords:["الإعدادات","الاعدادات"], action:()=> setView('settings') },
+    { label:"تسجيل الخروج", keywords:["خروج","تسجيل خروج","تسجيل الخروج"], action:()=>{ localStorage.removeItem('fcrm_logged_in_user'); showLogin(); } }
+  ];
+}
+function normalizeArabic(s){
+  return String(s || '')
+    .replace(/[\u064B-\u0652\u0670]/g, '') // strip Arabic diacritics
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function matchVoiceCommand(rawText){
+  const t = normalizeArabic(rawText);
+  if(!t) return { matches:[] };
+  if(t.startsWith('ابحث عن') || t.startsWith('بحث عن')){
+    const q = rawText.trim().replace(/^(ا)?بحث عن/, '').trim();
+    return { searchQuery: q, matches:[] };
+  }
+  const targets = getVoiceTargets();
+  const matches = targets.filter(target=>
+    target.keywords.some(k=>{
+      const nk = normalizeArabic(k);
+      return t.includes(nk) || nk.includes(t);
+    })
+  );
+  return { matches };
+}
+function startVoiceCommand(){
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognitionCtor){
+    alert('متصفحك لا يدعم الأوامر الصوتية. جرّب فتح النظام من متصفح Google Chrome.');
+    return;
+  }
+  if(location.protocol !== 'https:' && location.hostname !== 'localhost' && location.protocol !== 'file:'){
+    alert('الأوامر الصوتية تحتاج اتصالاً آمناً (https) أو تشغيل الملف محلياً.');
+    return;
+  }
+  if(voiceListening) return;
+  if(!voiceRecognition){
+    voiceRecognition = new SpeechRecognitionCtor();
+    voiceRecognition.lang = 'ar-SA';
+    voiceRecognition.continuous = false;
+    voiceRecognition.interimResults = false;
+    voiceRecognition.onresult = (event)=>{
+      const text = event.results[0][0].transcript || '';
+      handleVoiceCommand(text);
+    };
+    voiceRecognition.onerror = (event)=>{
+      voiceListening = false;
+      render();
+      const errorMessages = {
+        'not-allowed': 'تم رفض إذن الميكروفون. يرجى السماح باستخدام الميكروفون من إعدادات المتصفح ثم المحاولة مجدداً.',
+        'no-speech': 'لم يتم رصد أي صوت. تأكد أن الميكروفون يعمل وحاول التحدث بعد الضغط على الزر مباشرة.',
+        'audio-capture': 'تعذّر الوصول إلى الميكروفون. تأكد أن جهازك متصل بميكروفون فعّال.',
+        'network': 'تعذّر الاتصال بخدمة التعرف على الصوت. تحتاج هذه الميزة اتصالاً بالإنترنت.',
+        'aborted': ''
+      };
+      const msg = errorMessages[event.error];
+      if(msg) alert(msg);
+      else if(event.error) alert('تعذّر تشغيل الأوامر الصوتية (' + event.error + '). لاحظ أنها قد لا تعمل إذا كان الملف مفتوحاً مباشرة من الجهاز (file://) بدل رابط ويب آمن (https).');
+    };
+    voiceRecognition.onend = ()=>{ voiceListening = false; render(); };
+  }
+  try{
+    voiceListening = true;
+    render();
+    voiceRecognition.start();
+  }catch(e){
+    voiceListening = false;
+    render();
+  }
+}
+function handleVoiceCommand(rawText){
+  const t = rawText.trim();
+  if(!t) return;
+  const result = matchVoiceCommand(t);
+  if(result.searchQuery !== undefined){
+    globalSearchQuery = result.searchQuery;
+    globalSearchOpen = true;
+    render();
+    return;
+  }
+  if(result.matches.length === 1){
+    result.matches[0].action();
+  }else if(result.matches.length > 1){
+    showVoiceOptions(t, result.matches);
+  }else{
+    showVoiceOptions(t, getVoiceTargets());
+  }
+}
+function showVoiceOptions(heardText, matches){
+  const modal = document.getElementById('voiceModal');
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>لم أتأكد من الأمر المطلوب</h2><div class="sub">سمعت: "${esc(heardText)}" — اختر من القائمة أدناه</div></div>
+        <button class="modal-close" id="closeVoiceModalBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      ${matches.map((m, idx)=>`<button class="btn btn-ghost btn-sm" style="display:block; width:100%; margin-bottom:8px; text-align:right;" data-voiceoption="${idx}">${esc(m.label)}</button>`).join('')}
+    </div>
+  `;
+  document.getElementById('closeVoiceModalBtn').onclick = closeVoiceModal;
+  modal.querySelectorAll('[data-voiceoption]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = parseInt(btn.dataset.voiceoption, 10);
+      closeVoiceModal();
+      matches[idx].action();
+    };
+  });
+  document.getElementById('voiceOverlay').classList.remove('hidden');
+}
+function closeVoiceModal(){
+  document.getElementById('voiceOverlay').classList.add('hidden');
+}
+
+document.getElementById('nav').addEventListener('click', e=>{
+  const btn = e.target.closest('.nav-item');
+  if(btn && btn.dataset.view) setView(btn.dataset.view);
+});
+document.getElementById('main').addEventListener('click', e=>{
+  const lo = e.target.closest('[data-logout]');
+  if(lo){ localStorage.removeItem('fcrm_logged_in_user'); showLogin(); return; }
+  const gt = e.target.closest('[data-goto]');
+  if(gt){ userMenuOpen = false; setView(gt.dataset.goto); return; }
+  const trigger = e.target.closest('#userMenuTrigger');
+  if(trigger){ userMenuOpen = !userMenuOpen; render(); return; }
+  if(userMenuOpen && !e.target.closest('.user-menu')){
+    userMenuOpen = false;
+    render();
+    return;
+  }
+  if(globalSearchOpen && !e.target.closest('.global-search-wrap')){
+    globalSearchOpen = false;
+    render();
+    return;
+  }
+  if(openStatusMenuFor && !e.target.closest('.status-menu') && !e.target.closest('[data-kebab]')){
+    openStatusMenuFor = null;
+    render();
+  }
+});
+
+function renderGlobalSearchResults(){
+  const q = globalSearchQuery.trim();
+  if(!q) return '';
+  const matches = clients.filter(c=> c.name.includes(q) || (c.phone||'').includes(q)).slice(0,8);
+  if(matches.length===0) return `<div class="global-search-dropdown"><div class="global-search-empty">لا توجد نتائج مطابقة</div></div>`;
+  return `<div class="global-search-dropdown">${matches.map(c=>`
+    <div class="global-search-item" data-globalsearchopen="${c.id}">
+      <strong>${esc(c.name)}</strong>
+      <span dir="ltr" style="color:var(--muted);">${esc(c.countryCode)} ${esc(c.phone)}</span>
+    </div>
+  `).join('')}</div>`;
+}
+function voiceSupported(){
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+function userStripHtml(){
+  const u = users.find(x=>x.id===currentUserId);
+  if(!u) return '';
+  const avatarSmall = u.avatar ? `<img src="${u.avatar}" class="avatar">` : `<span class="avatar-placeholder">${esc(u.name.trim()[0]||'?')}</span>`;
+  const avatarLarge = u.avatar ? `<img src="${u.avatar}" class="avatar-lg">` : `<span class="avatar-placeholder-lg">${esc(u.name.trim()[0]||'?')}</span>`;
+  return `
+    <div class="user-menu-row">
+      <div class="global-search-wrap">
+        <input type="text" id="globalSearchInput" placeholder="🔍 بحث عن عميل بالاسم أو الجوال..." value="${esc(globalSearchQuery)}" autocomplete="off">
+        ${globalSearchOpen ? renderGlobalSearchResults() : ''}
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        ${voiceSupported() ? `<button class="voice-cmd-btn ${voiceListening?'listening':''}" id="voiceCmdBtn" title="أمر صوتي">🎤</button>` : ''}
+        <div class="user-menu ${userMenuOpen ? 'open' : ''}">
+          <button class="user-menu-trigger" id="userMenuTrigger">
+            ${avatarSmall}
+            <span class="uname">${esc(u.name)}</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="user-menu-dropdown ${userMenuOpen ? '' : 'hidden'}">
+            ${avatarLarge}
+            <span class="uname">${esc(u.name)}</span>
+            <button class="logout-btn" data-logout="1">تسجيل الخروج</button>
+            <button class="link-btn manage-link" data-goto="users">إدارة الحسابات</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function render(){
+  const main = document.getElementById('main');
+  let body = "";
+  if(currentView === 'list') body = renderDashboardView();
+  else if(currentView === 'clients') body = renderClientsView();
+  else if(currentView === 'brands') body = renderBrandsView();
+  else if(currentView === 'brandreport') body = renderBrandReportView();
+  else if(currentView === 'comms') body = renderCommsView();
+  else if(currentView === 'responsecategories') body = renderResponseCategoriesView();
+  else if(currentView === 'messages') body = renderMessagesView();
+  else if(currentView === 'sentmessages') body = renderSendMessagesView();
+  else if(currentView === 'contactlog') body = renderContactLogView();
+  else if(currentView === 'report') body = renderReportView();
+  else if(currentView === 'users') body = renderUsersView();
+  else if(currentView === 'share') body = renderShareView();
+  else if(currentView === 'settings') body = renderSettingsView();
+  main.innerHTML = userStripHtml() + body;
+  attachViewHandlers();
+}
+
+/* ============== Dashboard (الرئيسية) ============== */
+function renderDashboardView(){
+  const total = clients.length;
+  const approved = clients.filter(c=>{ const l=latestComm(c); return l && (l.status==='تم التأكيد' || l.status==='تم الاعتماد'); }).length;
+  const noResp = clients.filter(c=>{ const l=latestComm(c); return l && l.status==='لم يتم الرد'; }).length;
+  const pending = clients.filter(c=>{ const l=latestComm(c); return l && l.status==='تم الرد'; }).length;
+  const franchiseExp = clients.filter(c=>c.triedFranchise).length;
+
+  const brandCards = BRANDS.map(b=>{
+    const count = clients.filter(c=>c.brand===b).length;
+    return `<div class="brand-card" data-brand-goto="${b}">
+      <div class="bname">${b}</div>
+      <div class="bcount">${count}</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>الرئيسية</h1><p>نظرة عامة على العملاء والعلامات التجارية وحالة التواصل</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="systemShareBtn">مشاركة النظام</button>
+        <button class="btn btn-ghost" data-goto="share">استيراد / تصدير البيانات</button>
+        <button class="btn btn-primary" id="dashAddClientBtn">+ إضافة عميل</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">إجمالي العملاء</div></div>
+      <div class="stat-card"><div class="stat-num">${approved}</div><div class="stat-label">تم التأكيد</div></div>
+      <div class="stat-card"><div class="stat-num">${pending}</div><div class="stat-label">تم الرد</div></div>
+      <div class="stat-card"><div class="stat-num">${noResp}</div><div class="stat-label">لم يتم الرد</div></div>
+      <div class="stat-card"><div class="stat-num">${franchiseExp}</div><div class="stat-label">خبرة فرنشايز سابقة</div></div>
+    </div>
+
+    <div class="section-label">العلامات التجارية</div>
+    <div class="brand-cards">${brandCards}</div>
+
+    <div class="share-card" style="margin-top:24px; max-width:none;">
+      <h3>قائمة العملاء الكاملة</h3>
+      <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">لعرض أسماء العملاء وبياناتهم، والبحث والفلترة، افتح صفحة "العملاء" من القائمة الجانبية.</p>
+      <button class="btn btn-primary btn-sm" data-goto="clients">فتح قائمة العملاء</button>
+    </div>
+  `;
+}
+
+/* ============== Clients (العملاء) ============== */
+function getFilteredListClients(){
+  return clients.filter(c=>{
+    const q = listFilters.q.trim();
+    const matchesQ = !q || c.name.includes(q) || (c.companyName||'').includes(q) || (c.phone||'').includes(q) || (c.crNumber||'').includes(q);
+    const matchesBrand = !listFilters.brand || c.brand === listFilters.brand;
+    const l = latestComm(c);
+    const matchesStatus = !listFilters.status || (l && l.status === listFilters.status) || (listFilters.status==='none' && !l);
+    const r = latestRating(c);
+    const matchesRating = !listFilters.rating || (r && r.category === listFilters.rating) || (listFilters.rating==='none' && !r);
+    return matchesQ && matchesBrand && matchesStatus && matchesRating;
+  }).slice().reverse();
+}
+function renderClientsView(){
+  const filtered = getFilteredListClients();
+
+  const rows = filtered.map(c=>{
+    const l = latestComm(c);
+    const r = latestRating(c);
+    return `<tr data-id="${c.id}" class="${rowTintClass(l?l.status:null)}">
+      <td><span class="file-id">${c.id}</span></td>
+      <td>${esc(c.name)}<br><span style="color:var(--muted); font-size:11px;">${esc(c.entityType)}${c.addedBy? ' · أضيف بواسطة '+esc(c.addedBy):''}</span></td>
+      <td>${esc(c.brand)}</td>
+      <td>${esc(countryNameFromCode(c.countryCode))}<br><span dir="ltr" style="color:var(--muted); font-size:11.5px;">${esc(c.countryCode)} ${esc(c.phone)}</span></td>
+      <td>${r ? `<span class="badge ${ratingBadgeClass(r.category)}">${esc(r.category)}</span>` : '<span class="badge b-none">بدون تقييم</span>'}</td>
+      <td><span class="badge ${commBadgeClass(l ? l.status : null)}">${l ? esc(l.status) : 'لا يوجد تواصل'}</span></td>
+      <td style="position:relative;">
+        <button class="kebab-btn" data-kebab="${c.id}" title="تحديث حالة التواصل">⋮</button>
+        ${statusMenuHtml(c.id)}
+      </td>
+      <td><button class="share-icon-btn" data-wa="${c.id}">مشاركة واتساب</button></td>
+    </tr>`;
+  }).join('');
+
+  const brandCards = BRANDS.map(b=>{
+    const count = clients.filter(c=>c.brand===b).length;
+    const active = listFilters.brand===b;
+    return `<div class="brand-card ${active?'active':''}" data-brand="${b}">
+      <div class="bname">${b}</div>
+      <div class="bcount">${count}</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>العملاء</h1><p>جميع العملاء المسجلين في النظام مع التقييم وحالة التواصل</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="shareFormBtn">مشاركة نموذج تسجيل</button>
+        <button class="btn btn-ghost" id="exportClientsExcelBtn">تصدير Excel${listFilters.brand ? ' (العلامة: '+esc(listFilters.brand)+')' : ''}</button>
+        <button class="btn btn-primary" id="openAddClientBtn">+ إضافة عميل</button>
+      </div>
+    </div>
+
+    <div class="section-label">العلامات التجارية</div>
+    <div class="brand-cards">${brandCards}</div>
+
+    <div class="filters">
+      <input type="text" id="fq" placeholder="بحث بالاسم، الشركة، الجوال أو رقم السجل" value="${esc(listFilters.q)}">
+      <select id="fstatus">
+        <option value="">كل حالات التواصل</option>
+        ${COMM_STATUSES.map(s=>`<option value="${s}" style="${statusOptionStyle(s)}" ${listFilters.status===s?'selected':''}>${s}</option>`).join('')}
+        <option value="none" ${listFilters.status==='none'?'selected':''}>لا يوجد تواصل بعد</option>
+      </select>
+      <select id="frating">
+        <option value="">كل التقييمات</option>
+        ${RATING_OPTIONS.map(r=>`<option value="${r}" ${listFilters.rating===r?'selected':''}>${r}</option>`).join('')}
+        <option value="none" ${listFilters.rating==='none'?'selected':''}>بدون تقييم</option>
+      </select>
+      ${listFilters.brand ? `<button class="btn btn-ghost btn-sm" id="clearBrand">إلغاء فلتر: ${listFilters.brand}</button>` : ''}
+    </div>
+
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا يوجد عملاء مطابقون. جرّب تعديل البحث أو أضف عميلاً جديداً.</div>` : `
+      <table>
+        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>العلامة التجارية</th><th>الدولة / الجوال</th><th>التقييم</th><th>آخر تواصل</th><th>الحالة</th><th>مشاركة</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+/* ============== Brands management (العلامات التجارية) ============== */
+function renderBrandsView(){
+  const cards = BRANDS.map((b, idx)=>{
+    const count = clients.filter(c=>c.brand===b).length;
+    return `<div class="brand-card">
+      <div class="bname">${esc(b)}</div>
+      <div class="bcount">${count}</div>
+      <button class="link-btn" style="color:var(--danger); margin-top:8px; display:block;" data-removebrand="${idx}">حذف</button>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>العلامات التجارية</h1><p>إدارة العلامات التجارية (البراندات) المتاحة عند تسجيل العملاء</p></div>
+      <button class="btn btn-primary" id="openAddBrandBtn">+ إضافة علامة تجارية</button>
+    </div>
+    ${BRANDS.length===0 ? `<div class="table-wrap"><div class="empty">لا توجد علامات تجارية بعد. أضف أول علامة للبدء.</div></div>` : `<div class="brand-cards">${cards}</div>`}
+  `;
+}
+function openAddBrandModal(){
+  const modal = document.getElementById('brandModal');
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>إضافة علامة تجارية جديدة</h2></div>
+        <button class="modal-close" id="closeBrandModalBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <form id="addBrandForm">
+        <div class="field full"><label>اسم العلامة التجارية</label><input type="text" id="newBrandNameInput" required placeholder="مثال: بيتزا صح"></div>
+        <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">إضافة</button></div>
+      </form>
+    </div>
+  `;
+  document.getElementById('closeBrandModalBtn').onclick = closeAddBrandModal;
+  document.getElementById('addBrandForm').onsubmit = (e)=>{
+    e.preventDefault();
+    const val = document.getElementById('newBrandNameInput').value.trim();
+    if(!val) return;
+    if(BRANDS.includes(val)){ alert('هذه العلامة التجارية موجودة بالفعل'); return; }
+    BRANDS.push(val);
+    saveLists();
+    closeAddBrandModal();
+    render();
+  };
+  document.getElementById('brandOverlay').classList.remove('hidden');
+}
+function closeAddBrandModal(){
+  document.getElementById('brandOverlay').classList.add('hidden');
+}
+
+/* ============== Brand Clients Report (تقرير عملاء العلامات) ============== */
+function renderBrandReportView(){
+  const selectedBrand = brandReportFilter.brand;
+  const filtered = selectedBrand ? clients.filter(c=>c.brand===selectedBrand) : [];
+
+  const rows = filtered.map(c=>{
+    const l = latestComm(c);
+    const r = latestRating(c);
+    return `<tr data-id="${c.id}" class="${rowTintClass(l?l.status:null)}">
+      <td><span class="file-id">${c.id}</span></td>
+      <td>${esc(c.name)}</td>
+      <td dir="ltr" style="text-align:right;">${esc(c.countryCode)} ${esc(c.phone)}</td>
+      <td>${r ? `<span class="badge ${ratingBadgeClass(r.category)}">${esc(r.category)}</span>` : '<span class="badge b-none">بدون تقييم</span>'}</td>
+      <td><span class="badge ${commBadgeClass(l ? l.status : null)}">${l ? esc(l.status) : 'لا يوجد تواصل'}</span></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>تقرير عملاء العلامات</h1><p>اختر علامة تجارية لعرض جميع العملاء الذين طلبوها، ويمكنك إرسال رسالة لهم مباشرة</p></div>
+    </div>
+    <div class="filters">
+      <select id="brandReportSelect">
+        <option value="">اختر علامة تجارية...</option>
+        ${BRANDS.map(b=>`<option value="${esc(b)}" ${selectedBrand===b?'selected':''}>${esc(b)}</option>`).join('')}
+      </select>
+      <button class="btn btn-primary btn-sm" id="brandReportSearchBtn">بحث</button>
+      ${selectedBrand && filtered.length>0 ? `<button class="btn btn-ghost btn-sm" id="brandReportSendBtn">إرسال رسالة لهؤلاء العملاء</button>` : ''}
+    </div>
+    ${!selectedBrand ? `<div class="table-wrap"><div class="empty">اختر علامة تجارية من القائمة أعلاه لعرض عملائها.</div></div>` : `
+    <div class="stats-row" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-num">${filtered.length}</div><div class="stat-label">عدد العملاء لهذه العلامة</div></div>
+    </div>
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا يوجد عملاء طلبوا هذه العلامة بعد.</div>` : `
+      <table>
+        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>الجوال</th><th>التقييم</th><th>حالة التواصل</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>`}
+  `;
+}
+function addClientFormHtml(prefill){
+  prefill = prefill || {};
+  const uname = currentUserName();
+  return `
+    <form id="addForm">
+      <div class="form-grid">
+        <div class="field full">
+          <label>أُضيف بواسطة</label>
+          <div class="readonly-box">${uname ? esc(uname) : '—'}</div>
+        </div>
+
+        <div class="field full">
+          <label>اسم العميل</label>
+          <input type="text" name="name" required placeholder="مثال: محمد عبدالله" value="${esc(prefill.name||'')}">
+        </div>
+
+        <div class="field full">
+          <label>نوع الجهة</label>
+          <select name="entityType" id="entityTypeSelect">
+            ${ENTITY_TYPES.map(t=>`<option value="${t}" ${(prefill.entityType||addFormState.entityType)===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field"><label>اسم الشركة / المنشأة</label><input type="text" name="companyName" placeholder="اسم الشركة أو المؤسسة (إن وجد)" value="${esc(prefill.companyName||'')}"></div>
+        <div class="field"><label>رقم السجل التجاري</label><input type="text" name="crNumber" placeholder="رقم السجل التجاري" value="${esc(prefill.crNumber||'')}"></div>
+        <div class="field full"><label>النشاط الحالي</label><input type="text" name="activity" placeholder="مثال: مطاعم، تجارة تجزئة..." required value="${esc(prefill.activity||'')}"></div>
+
+        <div class="field full">
+          <label>رقم الجوال</label>
+          <div class="phone-row">
+            <select name="countryCode">${COUNTRIES.map(c=>`<option value="${c.code}" ${prefill.countryCode===c.code?'selected':''}>${c.name} (${c.code})</option>`).join('')}</select>
+            <input type="tel" name="phone" required placeholder="رقم الجوال بدون الصفر الأول" dir="ltr" value="${esc(prefill.phone||'')}">
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>البريد الإلكتروني (اختياري)</label>
+          <input type="email" name="email" placeholder="example@email.com" dir="ltr" value="${esc(prefill.email||'')}">
+        </div>
+
+        <div class="field full">
+          <label>هل سبق التعامل بنظام الفرنشايز؟</label>
+          <div class="circle-row" id="franchiseGroup">
+            <label class="circle-option"><input type="radio" name="franchise" value="yes" ${addFormState.triedFranchise===true?'checked':''}> نعم</label>
+            <label class="circle-option"><input type="radio" name="franchise" value="no" ${addFormState.triedFranchise===false?'checked':''}> لا</label>
+          </div>
+        </div>
+
+        <div class="field full" id="prevBrandField" style="display:${addFormState.triedFranchise===true ? 'flex' : 'none'};">
+          <label>العلامة التي حصل عليها سابقاً في الفرنشايز</label>
+          <input type="text" name="prevFranchiseBrand" placeholder="مثال: علامة أخرى تعامل معها سابقاً" value="${esc(prefill.prevFranchiseBrand||'')}">
+        </div>
+
+        <div class="field full">
+          <label>العلامة التجارية المطلوبة</label>
+          <select name="brand" id="brandSelect">
+            ${BRANDS.map(b=>`<option value="${esc(b)}" ${(prefill.brand||addFormState.brand)===b?'selected':''}>${esc(b)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>التقييم المبدئي (اختياري)</label>
+          <select name="initialRating">
+            <option value="">بدون تقييم الآن</option>
+            ${RATING_OPTIONS.map(r=>`<option value="${r}" ${addFormState.initialRating===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>ملاحظات على العميل (اختياري)</label>
+          <textarea name="notes" rows="3" placeholder="أي ملاحظات إضافية عن هذا العميل...">${esc(prefill.notes||'')}</textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">حفظ العميل</button>
+        <button type="button" class="btn btn-ghost" id="cancelAdd">إلغاء</button>
+      </div>
+    </form>
+  `;
+}
+let pendingAddPrefill = null;
+function renderAddModal(){
+  const modal = document.getElementById('addModal');
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div>
+          <h2>إضافة عميل جديد</h2>
+          <div class="sub">سيحصل العميل تلقائياً على رقم ملف: ${nextFileId()}</div>
+        </div>
+        <button class="modal-close" id="closeAddModalBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">${addClientFormHtml(pendingAddPrefill)}</div>
+  `;
+  document.getElementById('closeAddModalBtn').onclick = closeAddClientModal;
+  wireAddClientForm(modal);
+}
+function openAddClientModal(prefill){
+  if(!currentUserId){ alert('يرجى تحديد مستخدم أولاً من صفحة "المستخدمون" قبل إضافة عميل'); setView('users'); return; }
+  addFormState = {
+    entityType: (prefill && prefill.entityType) || "شركة",
+    triedFranchise: prefill && typeof prefill.triedFranchise === 'boolean' ? prefill.triedFranchise : null,
+    brand: (prefill && prefill.brand) || "",
+    initialRating: ""
+  };
+  pendingAddPrefill = prefill || null;
+  document.getElementById('addOverlay').classList.remove('hidden');
+  renderAddModal();
+}
+function closeAddClientModal(){
+  document.getElementById('addOverlay').classList.add('hidden');
+  pendingAddPrefill = null;
+}
+function wireAddClientForm(container){
+  container.querySelectorAll('#franchiseGroup input[name="franchise"]').forEach(r=>{
+    r.onchange = ()=>{
+      addFormState.triedFranchise = (r.value==='yes');
+      const field = container.querySelector('#prevBrandField');
+      if(field){
+        field.style.display = (r.value==='yes') ? 'flex' : 'none';
+        if(r.value==='no') field.querySelector('input[name="prevFranchiseBrand"]').value = '';
+      }
+    };
+  });
+  container.querySelector('#cancelAdd').onclick = closeAddClientModal;
+  container.querySelector('#addForm').onsubmit = (e)=>{
+    e.preventDefault();
+    if(!currentUserId){ alert('يرجى تحديد مستخدم أولاً من صفحة "المستخدمون" قبل إضافة عميل'); setView('users'); return; }
+    if(addFormState.triedFranchise===null){ alert('يرجى تحديد ما إذا كان العميل قد سبق له التعامل بنظام الفرنشايز'); return; }
+    if(BRANDS.length===0){ alert('يرجى إضافة علامة تجارية واحدة على الأقل أولاً من صفحة "العلامات التجارية"'); return; }
+    const f = e.target;
+    const initialRating = f.initialRating.value;
+    const newClient = {
+      id: nextFileId(),
+      name: f.name.value.trim(),
+      entityType: f.entityType.value,
+      companyName: f.companyName.value.trim(),
+      crNumber: f.crNumber.value.trim(),
+      activity: f.activity.value.trim(),
+      countryCode: f.countryCode.value,
+      phone: f.phone.value.trim(),
+      email: f.email.value.trim(),
+      triedFranchise: addFormState.triedFranchise,
+      prevFranchiseBrand: addFormState.triedFranchise ? f.prevFranchiseBrand.value.trim() : '',
+      brand: f.brand.value,
+      notes: f.notes.value.trim(),
+      addedBy: currentUserName(),
+      createdAt: new Date().toISOString(),
+      ratings: initialRating ? [{date:new Date().toISOString(), category:initialRating, note:''}] : [],
+      communications: []
+    };
+    clients.push(newClient);
+    saveClients();
+    addFormState = { entityType:"شركة", triedFranchise:null, brand:"", initialRating:"" };
+    closeAddClientModal();
+    render();
+  };
+}
+
+/* ============== Communications View ============== */
+function getFilteredCommsClients(){
+  return clients.filter(c=>{
+    const q = commFilters.q.trim();
+    const matchesQ = !q || c.name.includes(q) || (c.phone||'').includes(q) || (c.activity||'').includes(q);
+    const l = latestComm(c);
+    const matchesStatus = !commFilters.status || (l && l.status === commFilters.status) || (commFilters.status==='none' && !l);
+    const r = latestRating(c);
+    const matchesRating = !commFilters.rating || (r && r.category === commFilters.rating) || (commFilters.rating==='none' && !r);
+    return matchesQ && matchesStatus && matchesRating;
+  }).slice().reverse();
+}
+function renderCommsView(){
+  const filtered = getFilteredCommsClients();
+
+  const rows = filtered.map(c=>{
+    const l = latestComm(c);
+    const r = latestRating(c);
+    return `<tr data-id="${c.id}" data-open-tab="comms" class="${rowTintClass(l?l.status:null)}">
+      <td><span class="file-id">${c.id}</span></td>
+      <td>${esc(c.name)}</td>
+      <td dir="ltr" style="text-align:right;">${esc(c.countryCode)} ${esc(c.phone)}</td>
+      <td>${esc(c.activity || '—')}</td>
+      <td>${r ? `<span class="badge ${ratingBadgeClass(r.category)}">${esc(r.category)}</span>` : '<span class="badge b-none">بدون تقييم</span>'}</td>
+      <td><span class="badge ${commBadgeClass(l ? l.status : null)}">${l ? esc(l.status) : 'لا يوجد تواصل'}</span></td>
+      <td style="position:relative;">
+        <button class="kebab-btn" data-kebab="${c.id}" title="حفظ / تعديل حالة التواصل">⋮</button>
+        ${statusMenuHtml(c.id)}
+      </td>
+      <td><button class="share-icon-btn" data-wa="${c.id}">واتساب</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>حالة الردود</h1><p>جميع العملاء وحالة التواصل معهم — البحث بالاسم أو بالحالة فقط</p></div>
+      <button class="btn btn-ghost" data-goto="responsecategories">استجابة العملاء</button>
+    </div>
+
+    <div class="filters">
+      <input type="text" id="cq" placeholder="بحث بالاسم، الجوال أو النشاط" value="${esc(commFilters.q)}">
+      <button class="btn btn-ghost btn-sm" id="commsSearchBtn" title="تطبيق البحث">🔍 بحث</button>
+      <select id="cstatus">
+        <option value="">كل حالات التواصل</option>
+        ${COMM_STATUSES.map(s=>`<option value="${s}" style="${statusOptionStyle(s)}" ${commFilters.status===s?'selected':''}>${s}</option>`).join('')}
+        <option value="none" ${commFilters.status==='none'?'selected':''}>لا يوجد تواصل بعد</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا يوجد عملاء مطابقون.</div>` : `
+      <table>
+        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>رقم التواصل</th><th>النشاط</th><th>التقييم</th><th>حالة التواصل</th><th>الحالة</th><th>مشاركة</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+/* ============== استجابة العملاء (Response category manager) ============== */
+function renderResponseCategoriesView(){
+  const chips = COMM_STATUSES.map((s, idx)=>`
+    <span class="list-chip" style="${statusOptionStyle(s)}">
+      ${esc(s)}
+      <button data-removestatus="${idx}" title="حذف">×</button>
+    </span>
+  `).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>استجابة العملاء</h1><p>قائمة حالات الرد المستخدمة في صفحة "حالة الردود" — أضف أو احذف حسب الحاجة</p></div>
+    </div>
+    <div class="share-card" style="max-width:600px;">
+      <h3>حالات الرد الحالية</h3>
+      <div class="list-chips">${chips || '<p style="color:var(--muted); font-size:13px;">لا توجد حالات بعد.</p>'}</div>
+      <form id="addStatusForm" class="list-add-row">
+        <input type="text" id="newStatusInput" placeholder="إضافة حالة جديدة" required>
+        <button type="submit" class="btn btn-primary btn-sm">إضافة</button>
+      </form>
+    </div>
+  `;
+}
+
+/* ============== Report View ============== */
+function renderReportView(){
+  const byBrand = {}; BRANDS.forEach(b=> byBrand[b] = clients.filter(c=>c.brand===b).length);
+  const byStatus = {}; COMM_STATUSES.forEach(s=> byStatus[s]=0);
+  let noStatus = 0;
+  clients.forEach(c=>{ const l=latestComm(c); if(l) byStatus[l.status]++; else noStatus++; });
+  const byRating = {}; RATING_OPTIONS.forEach(r=> byRating[r]=0);
+  let noRating = 0;
+  clients.forEach(c=>{ const r=latestRating(c); if(r) byRating[r.category]++; else noRating++; });
+
+  const allNotes = [];
+  clients.forEach(c=>{ (c.communications||[]).forEach(m=> allNotes.push({...m, clientName:c.name, clientId:c.id})); });
+  allNotes.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+  const maxBrand = Math.max(1, ...Object.values(byBrand));
+  const maxStatus = Math.max(1, ...Object.values(byStatus), noStatus);
+  const maxRating = Math.max(1, ...Object.values(byRating), noRating);
+
+  const notesRows = allNotes.slice(0,50).map(n=>`
+    <tr>
+      <td><span class="file-id">${n.clientId}</span></td>
+      <td>${esc(n.clientName)}</td>
+      <td><span class="badge ${commBadgeClass(n.status)}">${esc(n.status)}</span></td>
+      <td style="color:var(--muted); font-size:12px;">${fmtDate(n.date)}</td>
+      <td>${esc(n.note || '—')}</td>
+    </tr>`).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>التقارير</h1><p>ملخص حالة العملاء وسجل ملاحظات التواصل</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportReportExcelBtn">تصدير تقرير Excel</button>
+        <button class="btn btn-ghost" onclick="window.print()">طباعة التقرير</button>
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="report-card"><h3>العملاء حسب العلامة التجارية</h3>
+        ${BRANDS.map(b=>`<div class="bar-row"><span class="lbl">${b}</span><span class="bar-track"><span class="bar-fill" style="width:${(byBrand[b]/maxBrand)*100}%"></span></span><span class="bar-count">${byBrand[b]}</span></div>`).join('')}
+      </div>
+      <div class="report-card"><h3>آخر حالة تواصل</h3>
+        ${COMM_STATUSES.map(s=>`<div class="bar-row"><span class="lbl">${s}</span><span class="bar-track"><span class="bar-fill" style="width:${(byStatus[s]/maxStatus)*100}%"></span></span><span class="bar-count">${byStatus[s]}</span></div>`).join('')}
+        <div class="bar-row"><span class="lbl">بدون تواصل</span><span class="bar-track"><span class="bar-fill" style="width:${(noStatus/maxStatus)*100}%; background:var(--muted);"></span></span><span class="bar-count">${noStatus}</span></div>
+      </div>
+      <div class="report-card"><h3>توزيع التقييمات</h3>
+        ${RATING_OPTIONS.map(r=>`<div class="bar-row"><span class="lbl">${r}</span><span class="bar-track"><span class="bar-fill" style="width:${(byRating[r]/maxRating)*100}%"></span></span><span class="bar-count">${byRating[r]}</span></div>`).join('')}
+        <div class="bar-row"><span class="lbl">بدون تقييم</span><span class="bar-track"><span class="bar-fill" style="width:${(noRating/maxRating)*100}%; background:var(--muted);"></span></span><span class="bar-count">${noRating}</span></div>
+      </div>
+    </div>
+
+    <h2 style="font-size:16px; margin-bottom:12px;">سجل ملاحظات التواصل (الأحدث أولاً)</h2>
+    <div class="table-wrap">
+      ${allNotes.length===0 ? `<div class="empty">لا توجد ملاحظات تواصل مسجّلة بعد.</div>` : `
+      <table><thead><tr><th>رقم الملف</th><th>العميل</th><th>الحالة</th><th>التاريخ</th><th>الملاحظة</th></tr></thead>
+      <tbody>${notesRows}</tbody></table>`}
+    </div>
+  `;
+}
+
+/* ============== Users View ============== */
+function renderUsersView(){
+  const cards = users.map(u=>{
+    const count = clients.filter(c=>c.addedBy===u.name).length;
+    const isCurrent = u.id === currentUserId;
+    const avatarHtml = u.avatar ? `<img src="${u.avatar}" class="avatar">` : `<span class="avatar-placeholder">${esc(u.name.trim()[0]||'?')}</span>`;
+    if(editingUserId === u.id){
+      return `<div class="user-card ${isCurrent?'current':''}">
+        <div class="uname">${avatarHtml} ${esc(u.name)}</div>
+        <form class="user-edit-form" data-edituserform="${u.id}">
+          <input type="text" name="name" value="${esc(u.name)}" placeholder="الاسم الكامل" required>
+          <input type="text" name="username" value="${esc(u.username)}" placeholder="اسم المستخدم" required>
+          <input type="text" name="password" value="${esc(u.password)}" placeholder="كلمة المرور" required>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary btn-sm">حفظ</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-canceledit="${u.id}">إلغاء</button>
+          </div>
+        </form>
+      </div>`;
+    }
+    return `<div class="user-card ${isCurrent?'current':''}">
+      <div class="uname">${avatarHtml} ${esc(u.name)}</div>
+      <div class="umeta">اسم الدخول: ${esc(u.username)} · أُضيف ${fmtDate(u.createdAt)} · ${count} عميل مسجّل</div>
+      <div class="btn-row">
+        ${isCurrent ? `<span class="badge b-done">أنت الآن</span>` : ''}
+        <button class="btn btn-ghost btn-sm" data-edituser="${u.id}">تعديل الحساب</button>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;">تغيير الصورة<input type="file" accept="image/*" data-avatar-for="${u.id}" style="display:none;"></label>
+        ${users.length>1 ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger);" data-deleteuser="${u.id}">حذف</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="topbar"><div><h1>المستخدمون</h1><p>حسابات الدخول إلى النظام — كل حساب له اسم مستخدم وكلمة مرور خاصة به، ويُسجَّل تلقائياً كمن أضاف كل عميل</p></div></div>
+    <form class="add-user-form" id="addUserForm">
+      <input type="text" id="newUserName" placeholder="الاسم الكامل" required>
+      <input type="text" id="newUserUsername" placeholder="اسم المستخدم" required>
+      <input type="text" id="newUserPassword" placeholder="كلمة المرور" required>
+      <button class="btn btn-primary" type="submit">إضافة حساب</button>
+    </form>
+    ${users.length===0 ? `<div class="table-wrap"><div class="empty">لا يوجد مستخدمون بعد.</div></div>` : `<div class="user-cards">${cards}</div>`}
+  `;
+}
+
+/* ============== Share / Backup View ============== */
+function renderShareView(){
+  return `
+    <div class="topbar"><div><h1>المشاركة والنسخ الاحتياطي</h1><p>شارك النظام مع فريقك أو انقل بياناتك بين الأجهزة</p></div></div>
+
+    <div class="share-card">
+      <h3>تنزيل نسخة كاملة من البيانات</h3>
+      <p>يتم تنزيل ملف واحد يحتوي على جميع العملاء والمستخدمين. أرسل هذا الملف لأي شخص آخر يستخدم النظام على جهاز آخر، ثم يقوم باستيراده من هنا.</p>
+      <button class="btn btn-primary" id="exportBtn">تنزيل نسخة (JSON)</button>
+    </div>
+
+    <div class="share-card">
+      <h3>استيراد نسخة بيانات</h3>
+      <p>اختر ملف نسخة تم تنزيله سابقاً لاستيراد العملاء والمستخدمين إلى هذا الجهاز. سيتم استبدال البيانات الحالية بعد التأكيد.</p>
+      <button class="btn btn-ghost" id="importBtn">اختيار ملف واستيراد</button>
+    </div>
+
+    <div class="share-card">
+      <h3>تصدير Excel</h3>
+      <p>ملف إكسل بكل بيانات العملاء، أو ملف تقرير مختصر (اسم الشركة، اسم العميل، العلامة السابقة، البراند المطلوب، التقييم، الرد) لإرساله أو فتحه في Excel مباشرة.</p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="exportExcelAllBtn">تصدير كل العملاء (Excel)</button>
+        <button class="btn btn-ghost" id="exportExcelReportBtn">تصدير التقرير (Excel)</button>
+      </div>
+    </div>
+
+    <div class="share-card">
+      <h3>استيراد من Excel</h3>
+      <p>استورد عملاء من ملف إكسل (مثلاً محضّر على جهاز آخر). نزّل النموذج الفارغ أولاً لمعرفة أسماء الأعمدة الصحيحة، ثم عبّئه وارفعه هنا — سيُضاف العملاء بأرقام ملفات جديدة دون حذف العملاء الحاليين.</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="downloadTemplateBtn">تنزيل نموذج Excel فارغ</button>
+        <button class="btn btn-primary" id="importExcelBtn">اختيار ملف واستيراد</button>
+      </div>
+    </div>
+
+    <div class="share-card">
+      <h3>مشاركة عميل عبر واتساب</h3>
+      <p>من قائمة العملاء أو صفحة التواصل، اضغط زر "مشاركة واتساب" بجانب أي عميل لفتح محادثة واتساب مباشرة برقمه مع رسالة معدّة مسبقاً.</p>
+    </div>
+  `;
+}
+
+/* ============== Settings View ============== */
+const LIST_META = {
+  entityTypes: { label:"أنواع الجهة", type:"simple" },
+  ratingOptions: { label:"خيارات التقييم", type:"simple" },
+  countries: { label:"الدول ومفاتيح الاتصال", type:"country" }
+};
+function getListArray(key){
+  return { entityTypes:ENTITY_TYPES, ratingOptions:RATING_OPTIONS, countries:COUNTRIES }[key];
+}
+function renderSettingsView(){
+  const listsHtml = Object.entries(LIST_META).map(([key, meta])=>{
+    const arr = getListArray(key);
+    const chips = arr.map((item, idx)=>{
+      const label = meta.type==='country' ? `${item.name} (${item.code})` : item;
+      return `<span class="list-chip">${esc(label)} <button data-removelist="${key}|${idx}" title="حذف">×</button></span>`;
+    }).join('');
+    const addRow = meta.type==='country'
+      ? `<div class="list-add-row">
+          <input type="text" placeholder="اسم الدولة" data-newcountryname="${key}">
+          <input type="text" placeholder="المفتاح مثل +966+" data-newcountrycode="${key}" style="max-width:110px;">
+          <button class="btn btn-ghost btn-sm" data-addcountry="${key}">إضافة</button>
+        </div>`
+      : `<div class="list-add-row">
+          <input type="text" placeholder="إضافة عنصر جديد" data-newitem="${key}">
+          <button class="btn btn-ghost btn-sm" data-additem="${key}">إضافة</button>
+        </div>`;
+    return `<div class="share-card"><h3>${meta.label}</h3><div class="list-chips">${chips}</div>${addRow}</div>`;
+  }).join('');
+
+  return `
+    <div class="topbar"><div><h1>الإعدادات</h1><p>شعار النظام، وإدارة القوائم الأساسية والفرعية المستخدمة في كل شاشات النظام</p></div></div>
+
+    <div class="share-card">
+      <h3>شعار النظام</h3>
+      <p>ارفع صورة شعار شركتك ليظهر في الشريط الجانبي وفي شاشة تسجيل الدخول.</p>
+      <div class="file-upload-row">
+        ${systemLogo ? `<img src="${systemLogo}" style="max-height:48px; max-width:160px; object-fit:contain;">` : `<span style="color:var(--muted); font-size:12.5px;">لا يوجد شعار حالياً</span>`}
+        <label class="btn btn-primary btn-sm" style="cursor:pointer;">رفع شعار<input type="file" id="logoUpload" accept="image/*" style="display:none;"></label>
+        ${systemLogo ? `<button class="btn btn-ghost btn-sm" id="removeLogoBtn">إزالة الشعار</button>` : ''}
+      </div>
+    </div>
+
+    <div class="share-card">
+      <h3>قوالب رسائل الدردشة (واتساب)</h3>
+      <p>تُدار قوالب الرسائل الآن من صفحة "محتوى الرسائل" الموجودة ضمن قائمة "التواصل مع العملاء" في الشريط الجانبي.</p>
+      <button class="btn btn-ghost btn-sm" data-goto="messages">فتح محتوى الرسائل</button>
+    </div>
+
+    <div class="share-card">
+      <h3>العلامات التجارية</h3>
+      <p>تُدار العلامات التجارية (البراندات) الآن من صفحتها المستقلة في الشريط الجانبي.</p>
+      <button class="btn btn-ghost btn-sm" data-goto="brands">فتح العلامات التجارية</button>
+    </div>
+
+    <div class="share-card">
+      <h3>استجابة العملاء (حالات التواصل)</h3>
+      <p>تُدار حالات الرد الآن من صفحة "استجابة العملاء" الموجودة ضمن قائمة "التواصل مع العملاء" في الشريط الجانبي.</p>
+      <button class="btn btn-ghost btn-sm" data-goto="responsecategories">فتح استجابة العملاء</button>
+    </div>
+
+    <h2 style="font-size:16px; margin-bottom:4px;">إدارة القوائم</h2>
+    <p style="color:var(--muted); font-size:12.5px; margin-bottom:14px;">أضف أو احذف أي عنصر من هذه القوائم — التغييرات تنعكس فوراً في نموذج إضافة العميل، الفلاتر، والتقارير. حسابات المستخدمين (اسم الدخول وكلمة المرور) تُدار من صفحة "المستخدمون".</p>
+    ${listsHtml}
+  `;
+}
+
+/* ============== Modal (client detail) ============== */
+function openModal(id, initialTab){
+  activeClientId = id;
+  activeModalTab = initialTab || 'info';
+  clientEditMode = false;
+  pendingRatingCat = null;
+  pendingCommStatus = null;
+  document.getElementById('overlay').classList.remove('hidden');
+  renderModal();
+}
+function closeModal(){
+  document.getElementById('overlay').classList.add('hidden');
+  activeClientId = null;
+}
+function renderModal(){
+  const c = clients.find(x=>x.id===activeClientId);
+  if(!c){ closeModal(); return; }
+  const modal = document.getElementById('modal');
+
+  const infoHtml = clientEditMode ? `
+    <form id="editClientForm" class="form-grid">
+      <div class="field full"><label>اسم العميل</label><input type="text" name="name" value="${esc(c.name)}" required></div>
+      <div class="field"><label>نوع الجهة</label>
+        <select name="entityType">${ENTITY_TYPES.map(t=>`<option value="${t}" ${c.entityType===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>اسم الشركة / المنشأة</label><input type="text" name="companyName" value="${esc(c.companyName||'')}"></div>
+      <div class="field"><label>رقم السجل التجاري</label><input type="text" name="crNumber" value="${esc(c.crNumber||'')}"></div>
+      <div class="field"><label>النشاط الحالي</label><input type="text" name="activity" value="${esc(c.activity||'')}" required></div>
+      <div class="field full">
+        <label>رقم الجوال</label>
+        <div class="phone-row">
+          <select name="countryCode">${COUNTRIES.map(cc=>`<option value="${cc.code}" ${c.countryCode===cc.code?'selected':''}>${cc.name} (${cc.code})</option>`).join('')}</select>
+          <input type="tel" name="phone" value="${esc(c.phone)}" dir="ltr" required>
+        </div>
+      </div>
+      <div class="field full"><label>البريد الإلكتروني (اختياري)</label><input type="email" name="email" value="${esc(c.email||'')}" dir="ltr"></div>
+      <div class="field full">
+        <label>هل سبق التعامل بنظام الفرنشايز؟</label>
+        <div class="circle-row" id="editFranchiseGroup">
+          <label class="circle-option"><input type="radio" name="triedFranchise" value="yes" ${c.triedFranchise?'checked':''}> نعم</label>
+          <label class="circle-option"><input type="radio" name="triedFranchise" value="no" ${!c.triedFranchise?'checked':''}> لا</label>
+        </div>
+      </div>
+      <div class="field full" id="editPrevBrandField" style="display:${c.triedFranchise ? 'flex' : 'none'};">
+        <label>العلامة التي حصل عليها سابقاً في الفرنشايز</label>
+        <input type="text" name="prevFranchiseBrand" value="${esc(c.prevFranchiseBrand||'')}">
+      </div>
+      <div class="field full"><label>العلامة التجارية المطلوبة</label>
+        <select name="brand">${BRANDS.map(b=>`<option value="${b}" ${c.brand===b?'selected':''}>${b}</option>`).join('')}</select>
+      </div>
+      <div class="field full"><label>ملاحظات</label><textarea name="notes" rows="3">${esc(c.notes||'')}</textarea></div>
+      <div class="btn-row" style="grid-column:1 / -1; margin-top:6px;">
+        <button type="submit" class="btn btn-primary btn-sm">حفظ التعديلات</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="cancelEditClient">إلغاء</button>
+      </div>
+    </form>
+  ` : `
+    <div class="info-grid">
+      <div class="info-item"><div class="k">رقم الملف</div><div class="v">${c.id}</div></div>
+      <div class="info-item"><div class="k">الاسم</div><div class="v">${esc(c.name)}</div></div>
+      <div class="info-item"><div class="k">نوع الجهة</div><div class="v">${esc(c.entityType)}</div></div>
+      <div class="info-item"><div class="k">اسم الشركة / المنشأة</div><div class="v">${esc(c.companyName||'—')}</div></div>
+      <div class="info-item"><div class="k">رقم السجل التجاري</div><div class="v">${esc(c.crNumber||'—')}</div></div>
+      <div class="info-item"><div class="k">النشاط الحالي</div><div class="v">${esc(c.activity||'—')}</div></div>
+      <div class="info-item"><div class="k">الدولة</div><div class="v">${esc(countryNameFromCode(c.countryCode))}</div></div>
+      <div class="info-item"><div class="k">رقم الجوال</div><div class="v" dir="ltr" style="text-align:right;">${esc(c.countryCode)} ${esc(c.phone)}</div></div>
+      <div class="info-item"><div class="k">البريد الإلكتروني</div><div class="v" dir="ltr" style="text-align:right;">${esc(c.email||'—')}</div></div>
+      <div class="info-item"><div class="k">خبرة فرنشايز سابقة</div><div class="v">${c.triedFranchise? 'نعم' : 'لا'}</div></div>
+      <div class="info-item"><div class="k">العلامة السابقة (إن وجدت)</div><div class="v">${esc(c.prevFranchiseBrand||'—')}</div></div>
+      <div class="info-item"><div class="k">العلامة التجارية المطلوبة</div><div class="v">${esc(c.brand)}</div></div>
+      <div class="info-item"><div class="k">أُضيف بواسطة</div><div class="v">${esc(c.addedBy || '—')}</div></div>
+      <div class="info-item"><div class="k">تاريخ الإضافة</div><div class="v">${fmtDate(c.createdAt)}</div></div>
+      <div class="info-item full" style="grid-column:1 / -1;"><div class="k">ملاحظات</div><div class="v">${esc(c.notes||'—')}</div></div>
+    </div>
+    <div class="btn-row" style="margin-top:18px;">
+      <a class="btn btn-wa btn-sm" href="${waLink(c)}" target="_blank" rel="noopener" id="modalWaShareLink">مشاركة عبر واتساب</a>
+      <button class="btn btn-ghost btn-sm" id="editClientBtn">تعديل البيانات</button>
+      <button class="btn btn-ghost btn-sm" id="deleteClientBtn" style="color:var(--danger);">حذف العميل</button>
+    </div>
+  `;
+
+  const ratingsHtml = `
+    ${(c.ratings||[]).slice().reverse().map(r=>`
+      <div class="log-entry">
+        <div class="row1"><span class="badge ${ratingBadgeClass(r.category)}">${esc(r.category)}</span><span class="date">${fmtDate(r.date)}</span></div>
+        ${r.note ? `<div class="note">${esc(r.note)}</div>` : ''}
+      </div>`).join('') || `<p style="color:var(--muted); font-size:13px;">لا توجد تقييمات مسجّلة بعد.</p>`}
+    <div class="add-log-box">
+      <h4>إضافة تقييم جديد</h4>
+      <div class="choice-row" id="ratingChoice">
+        ${RATING_OPTIONS.map(r=>`<div class="radio-chip ${pendingRatingCat===r?'selected':''}" data-rating="${r}">${r}</div>`).join('')}
+      </div>
+      <textarea id="ratingNote" rows="2" placeholder="ملاحظة على التقييم (اختياري)"></textarea>
+      <button class="btn btn-primary btn-sm" id="saveRating">حفظ التقييم</button>
+    </div>
+  `;
+
+  const commsHtml = `
+    ${(c.communications||[]).slice().reverse().map(m=>`
+      <div class="log-entry">
+        <div class="row1"><span class="badge ${commBadgeClass(m.status)}">${esc(m.status)}</span><span class="date">${fmtDate(m.date)}</span></div>
+        ${m.note ? `<div class="note">${esc(m.note)}</div>` : ''}
+      </div>`).join('') || `<p style="color:var(--muted); font-size:13px;">لا توجد ملاحظات تواصل مسجّلة بعد.</p>`}
+    <div class="add-log-box">
+      <h4>إضافة ملاحظة تواصل</h4>
+      <div class="choice-row" id="statusChoice">
+        ${COMM_STATUSES.map(s=>`<div class="radio-chip ${pendingCommStatus===s?'selected':''}" data-status="${s}">${s}</div>`).join('')}
+      </div>
+      <textarea id="commNote" rows="2" placeholder="تفاصيل الملاحظة (اختياري)"></textarea>
+      <button class="btn btn-primary btn-sm" id="saveComm">حفظ الملاحظة</button>
+    </div>
+  `;
+
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div>
+          <h2>${esc(c.name)} <span style="color:var(--muted); font-weight:400; font-size:13px;">— ملف رقم ${c.id}</span></h2>
+          <div class="sub">${esc(c.brand)} · ${esc(c.entityType)} ${c.addedBy? '· أُضيف بواسطة '+esc(c.addedBy):''}</div>
+        </div>
+        <button class="modal-close" id="closeModalBtn">✕</button>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn ${activeModalTab==='info'?'active':''}" data-tab="info">بيانات العميل</button>
+        <button class="tab-btn ${activeModalTab==='ratings'?'active':''}" data-tab="ratings">التقييمات</button>
+        <button class="tab-btn ${activeModalTab==='comms'?'active':''}" data-tab="comms">التواصل والملاحظات</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="tab-panel ${activeModalTab==='info'?'active':''}" data-panel="info">${infoHtml}</div>
+      <div class="tab-panel ${activeModalTab==='ratings'?'active':''}" data-panel="ratings">${ratingsHtml}</div>
+      <div class="tab-panel ${activeModalTab==='comms'?'active':''}" data-panel="comms">${commsHtml}</div>
+    </div>
+  `;
+
+  document.getElementById('closeModalBtn').onclick = closeModal;
+  const modalWaShareLink = modal.querySelector('#modalWaShareLink');
+  if(modalWaShareLink){
+    modalWaShareLink.onclick = ()=>{
+      const defaultTpl = MESSAGE_TEMPLATES[0];
+      const msg = defaultTpl ? fillTemplate(defaultTpl.text, c) : `مرحباً ${c.name}، نتواصل معكم بخصوص طلب الحصول على فرنشايز علامة "${c.brand}". (ملف رقم ${c.id})`;
+      logSentMessage(c, 'واتساب', defaultTpl ? defaultTpl.title : '', msg);
+    };
+  }
+  modal.querySelectorAll('.tab-btn').forEach(b=>{ b.onclick = ()=>{ activeModalTab = b.dataset.tab; renderModal(); }; });
+
+  const editClientBtn = modal.querySelector('#editClientBtn');
+  if(editClientBtn) editClientBtn.onclick = ()=>{ clientEditMode = true; renderModal(); };
+  const cancelEditClient = modal.querySelector('#cancelEditClient');
+  if(cancelEditClient) cancelEditClient.onclick = ()=>{ clientEditMode = false; renderModal(); };
+  const editFranchiseGroup = modal.querySelector('#editFranchiseGroup');
+  if(editFranchiseGroup){
+    editFranchiseGroup.querySelectorAll('input[name="triedFranchise"]').forEach(r=>{
+      r.onchange = ()=>{
+        const field = modal.querySelector('#editPrevBrandField');
+        if(field){
+          field.style.display = (r.value==='yes') ? 'flex' : 'none';
+          if(r.value==='no') field.querySelector('input[name="prevFranchiseBrand"]').value = '';
+        }
+      };
+    });
+  }
+  const editClientForm = modal.querySelector('#editClientForm');
+  if(editClientForm){
+    editClientForm.onsubmit = (e)=>{
+      e.preventDefault();
+      const f = e.target;
+      c.name = f.name.value.trim();
+      c.entityType = f.entityType.value;
+      c.companyName = f.companyName.value.trim();
+      c.crNumber = f.crNumber.value.trim();
+      c.activity = f.activity.value.trim();
+      c.countryCode = f.countryCode.value;
+      c.phone = f.phone.value.trim();
+      c.email = f.email.value.trim();
+      c.triedFranchise = f.triedFranchise.value === 'yes';
+      c.prevFranchiseBrand = c.triedFranchise ? f.prevFranchiseBrand.value.trim() : '';
+      c.brand = f.brand.value;
+      c.notes = f.notes.value.trim();
+      saveClients();
+      clientEditMode = false;
+      renderModal();
+    };
+  }
+  const deleteClientBtn = modal.querySelector('#deleteClientBtn');
+  if(deleteClientBtn){
+    deleteClientBtn.onclick = ()=>{
+      if(!confirm('هل أنت متأكد من حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+      clients = clients.filter(x=>x.id!==c.id);
+      saveClients();
+      closeModal();
+      render();
+    };
+  }
+
+  const ratingChoice = modal.querySelector('#ratingChoice');
+  if(ratingChoice){ ratingChoice.querySelectorAll('.radio-chip').forEach(ch=>{ ch.onclick = ()=>{ pendingRatingCat = ch.dataset.rating; renderModal(); }; }); }
+  const saveRatingBtn = modal.querySelector('#saveRating');
+  if(saveRatingBtn){
+    saveRatingBtn.onclick = ()=>{
+      if(!pendingRatingCat){ alert('يرجى اختيار مستوى التقييم'); return; }
+      const note = modal.querySelector('#ratingNote').value.trim();
+      c.ratings = c.ratings || [];
+      c.ratings.push({ date: new Date().toISOString(), category: pendingRatingCat, note });
+      pendingRatingCat = null;
+      saveClients();
+      renderModal();
+    };
+  }
+
+  const statusChoice = modal.querySelector('#statusChoice');
+  if(statusChoice){ statusChoice.querySelectorAll('.radio-chip').forEach(ch=>{ ch.onclick = ()=>{ pendingCommStatus = ch.dataset.status; renderModal(); }; }); }
+  const saveCommBtn = modal.querySelector('#saveComm');
+  if(saveCommBtn){
+    saveCommBtn.onclick = ()=>{
+      if(!pendingCommStatus){ alert('يرجى اختيار حالة التواصل'); return; }
+      const note = modal.querySelector('#commNote').value.trim();
+      c.communications = c.communications || [];
+      c.communications.push({ date: new Date().toISOString(), status: pendingCommStatus, note });
+      pendingCommStatus = null;
+      saveClients();
+      renderModal();
+    };
+  }
+}
+
+/* ============== Export / Import ============== */
+function exportData(){
+  const lists = { brands:BRANDS, countries:COUNTRIES, entityTypes:ENTITY_TYPES, commStatuses:COMM_STATUSES, ratingOptions:RATING_OPTIONS };
+  const payload = { clients, users, lists, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = `نسخة-عملاء-الفرنشايز-${stamp}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function importDataFromFile(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!Array.isArray(data.clients) || !Array.isArray(data.users)) throw new Error('bad format');
+      if(!confirm('سيتم استبدال جميع البيانات الحالية بالبيانات المستوردة، وسيُطلب تسجيل الدخول من جديد. هل تريد المتابعة؟')) return;
+      clients = data.clients; users = data.users;
+      if(data.lists){
+        BRANDS = data.lists.brands || BRANDS;
+        COUNTRIES = data.lists.countries || COUNTRIES;
+        ENTITY_TYPES = data.lists.entityTypes || ENTITY_TYPES;
+        COMM_STATUSES = data.lists.commStatuses || COMM_STATUSES;
+        RATING_OPTIONS = data.lists.ratingOptions || RATING_OPTIONS;
+        saveLists();
+      }
+      saveClients(); saveUsers();
+      alert('تم استيراد البيانات بنجاح. يرجى تسجيل الدخول من جديد.');
+      localStorage.removeItem('fcrm_logged_in_user');
+      showLogin();
+    }catch(err){ alert('تعذّر قراءة الملف. تأكد أنه ملف نسخة صحيح تم تنزيله من هذا النظام.'); }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+/* ============== Excel export / import ============== */
+const EXCEL_HEADERS = ["رقم الملف","اسم العميل","نوع الجهة","اسم الشركة","رقم السجل التجاري","النشاط الحالي","الدولة","رقم الجوال","البريد الإلكتروني","سبق الفرنشايز","العلامة التي حصل عليها سابقاً","البراند المطلوب","التقييم","حالة التواصل","ملاحظات","أضيف بواسطة","تاريخ الإضافة"];
+
+function clientToExcelRow(c){
+  return {
+    "رقم الملف": c.id,
+    "اسم العميل": c.name,
+    "نوع الجهة": c.entityType,
+    "اسم الشركة": c.companyName || "",
+    "رقم السجل التجاري": c.crNumber || "",
+    "النشاط الحالي": c.activity || "",
+    "الدولة": countryNameFromCode(c.countryCode),
+    "رقم الجوال": c.countryCode + " " + c.phone,
+    "البريد الإلكتروني": c.email || "",
+    "سبق الفرنشايز": c.triedFranchise ? "نعم" : "لا",
+    "العلامة التي حصل عليها سابقاً": c.prevFranchiseBrand || "",
+    "البراند المطلوب": c.brand,
+    "التقييم": (latestRating(c) ? latestRating(c).category : ""),
+    "حالة التواصل": (latestComm(c) ? latestComm(c).status : ""),
+    "ملاحظات": c.notes || "",
+    "أضيف بواسطة": c.addedBy || "",
+    "تاريخ الإضافة": fmtDate(c.createdAt)
+  };
+}
+function exportClientsExcel(list){
+  const rows = (list || clients).map(clientToExcelRow);
+  const ws = XLSX.utils.json_to_sheet(rows, {header: EXCEL_HEADERS});
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "العملاء");
+  XLSX.writeFile(wb, `عملاء-الفرنشايز-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+function exportReportExcel(){
+  const rows = clients.map(c=>({
+    "اسم الشركة": c.companyName || "",
+    "اسم العميل": c.name,
+    "العلامة التي حصل عليها في الفرنشايز": c.prevFranchiseBrand || (c.triedFranchise ? "غير محدد" : "لا يوجد"),
+    "البراند المطلوب": c.brand,
+    "التقييم": latestRating(c) ? latestRating(c).category : "بدون تقييم",
+    "الرد": latestComm(c) ? latestComm(c).status : "لا يوجد تواصل"
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "التقرير");
+  XLSX.writeFile(wb, `تقرير-عملاء-الفرنشايز-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+function downloadExcelTemplate(){
+  const example = {
+    "اسم العميل":"مثال: خالد سالم", "نوع الجهة":"فرد", "اسم الشركة":"", "رقم السجل التجاري":"",
+    "النشاط الحالي":"مطاعم", "الدولة":"السعودية", "رقم الجوال":"+966 5xxxxxxxx",
+    "سبق الفرنشايز":"لا", "العلامة التي حصل عليها سابقاً":"", "البراند المطلوب":"مشاوي صح",
+    "التقييم":"جيد", "حالة التواصل":"تم الرد"
+  };
+  const ws = XLSX.utils.json_to_sheet([example]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "نموذج");
+  XLSX.writeFile(wb, "نموذج-استيراد-عملاء.xlsx");
+}
+function importClientsFromExcel(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      if(!rows.length){ alert('الملف لا يحتوي على بيانات.'); return; }
+      let added = 0;
+      rows.forEach(row=>{
+        const name = String(row["اسم العميل"] || row["الاسم"] || '').trim();
+        if(!name) return;
+        const countryName = String(row["الدولة"] || '').trim();
+        let countryMatch = COUNTRIES.find(cc=>cc.name===countryName);
+        let phoneRaw = String(row["رقم الجوال"] || '').trim();
+        let countryCode = countryMatch ? countryMatch.code : '';
+        if(!countryCode){
+          const found = COUNTRIES.find(cc=>phoneRaw.replace(/\s/g,'').startsWith(cc.code));
+          if(found){ countryCode = found.code; phoneRaw = phoneRaw.replace(/\s/g,'').slice(found.code.length); }
+        } else if(phoneRaw.replace(/\s/g,'').startsWith(countryCode)){
+          phoneRaw = phoneRaw.replace(/\s/g,'').slice(countryCode.length);
+        }
+        const triedFranchise = String(row["سبق الفرنشايز"] || '').trim() === 'نعم';
+        let brand = String(row["البراند المطلوب"] || '').trim();
+        if(!BRANDS.includes(brand)) brand = BRANDS[0];
+        const ratingCat = String(row["التقييم"] || '').trim();
+        const commStatus = String(row["حالة التواصل"] || row["الرد"] || '').trim();
+        const newClient = {
+          id: nextFileId(),
+          name,
+          entityType: ENTITY_TYPES.includes(row["نوع الجهة"]) ? row["نوع الجهة"] : "فرد",
+          companyName: String(row["اسم الشركة"] || '').trim(),
+          crNumber: String(row["رقم السجل التجاري"] || '').trim(),
+          activity: String(row["النشاط الحالي"] || '').trim(),
+          countryCode: countryCode || COUNTRIES[0].code,
+          phone: phoneRaw,
+          email: String(row["البريد الإلكتروني"] || '').trim(),
+          triedFranchise,
+          prevFranchiseBrand: String(row["العلامة التي حصل عليها سابقاً"] || row["العلامة التي حصل عليها في الفرنشايز"] || '').trim(),
+          brand,
+          notes: String(row["ملاحظات"] || '').trim(),
+          addedBy: currentUserName() || 'استيراد Excel',
+          createdAt: new Date().toISOString(),
+          ratings: RATING_OPTIONS.includes(ratingCat) ? [{date:new Date().toISOString(), category:ratingCat, note:'مستورد من إكسل'}] : [],
+          communications: COMM_STATUSES.includes(commStatus) ? [{date:new Date().toISOString(), status:commStatus, note:'مستورد من إكسل'}] : []
+        };
+        clients.push(newClient);
+        added++;
+      });
+      saveClients();
+      alert(`تم استيراد ${added} عميل بنجاح.`);
+      setView('clients');
+    }catch(err){
+      alert('تعذّر قراءة ملف الإكسل. تأكد من صيغة الملف وأسماء الأعمدة (استخدم النموذج الفارغ كمرجع).');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ============== View-specific handlers ============== */
+function attachViewHandlers(){
+  // global search (appears on every page via userStripHtml)
+  const globalSearchInput = document.getElementById('globalSearchInput');
+  if(globalSearchInput){
+    globalSearchInput.oninput = (e)=>{
+      globalSearchQuery = e.target.value;
+      globalSearchOpen = true;
+      render();
+      const el = document.getElementById('globalSearchInput');
+      if(el){ el.focus(); el.setSelectionRange(globalSearchQuery.length, globalSearchQuery.length); }
+    };
+    globalSearchInput.onfocus = ()=>{ if(globalSearchQuery.trim()){ globalSearchOpen = true; render(); } };
+  }
+  document.querySelectorAll('[data-globalsearchopen]').forEach(item=>{
+    item.onclick = ()=>{
+      const id = item.dataset.globalsearchopen;
+      globalSearchOpen = false;
+      globalSearchQuery = '';
+      openModal(id, 'info');
+    };
+  });
+  const voiceCmdBtn = document.getElementById('voiceCmdBtn');
+  if(voiceCmdBtn) voiceCmdBtn.onclick = startVoiceCommand;
+
+  // shared: whatsapp share buttons + row clicks appear on list & comms
+  document.querySelectorAll('[data-wa]').forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      const c = clients.find(x=>x.id===btn.dataset.wa);
+      if(c){
+        const defaultTpl = MESSAGE_TEMPLATES[0];
+        const msg = defaultTpl ? fillTemplate(defaultTpl.text, c) : `مرحباً ${c.name}، نتواصل معكم بخصوص طلب الحصول على فرنشايز علامة "${c.brand}". (ملف رقم ${c.id})`;
+        window.open(waLinkWithText(c, msg), '_blank');
+        logSentMessage(c, 'واتساب', defaultTpl ? defaultTpl.title : '', msg);
+      }
+    };
+  });
+  document.querySelectorAll('tbody tr[data-id]').forEach(tr=>{
+    tr.onclick = ()=> openModal(tr.dataset.id, tr.dataset.openTab || 'info');
+  });
+  document.querySelectorAll('[data-kebab]').forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      openStatusMenuFor = (openStatusMenuFor === btn.dataset.kebab) ? null : btn.dataset.kebab;
+      render();
+    };
+  });
+  document.querySelectorAll('[data-quickstatus]').forEach(item=>{
+    item.onclick = (e)=>{
+      e.stopPropagation();
+      const [id, status] = item.dataset.quickstatus.split('|');
+      const c = clients.find(x=>x.id===id);
+      if(c){
+        if(!confirm(`تأكيد حفظ حالة التواصل مع "${c.name}" كـ: ${status}؟\n(لن يتم إرسال أي رسالة للعميل — هذا لتسجيل الحالة داخل النظام فقط)`)){
+          return;
+        }
+        c.communications = c.communications || [];
+        c.communications.push({ date:new Date().toISOString(), status, note:'' });
+        saveClients();
+      }
+      openStatusMenuFor = null;
+      render();
+    };
+  });
+  document.querySelectorAll('[data-quickedit]').forEach(item=>{
+    item.onclick = (e)=>{
+      e.stopPropagation();
+      const id = item.dataset.quickedit;
+      openStatusMenuFor = null;
+      openModal(id, 'info');
+      clientEditMode = true;
+      renderModal();
+    };
+  });
+  document.querySelectorAll('[data-quickdelete]').forEach(item=>{
+    item.onclick = (e)=>{
+      e.stopPropagation();
+      const id = item.dataset.quickdelete;
+      if(!confirm('هل أنت متأكد من حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+      clients = clients.filter(x=>x.id!==id);
+      saveClients();
+      openStatusMenuFor = null;
+      render();
+    };
+  });
+
+  if(currentView === 'list'){
+    document.getElementById('dashAddClientBtn').onclick = openAddClientModal;
+    document.getElementById('systemShareBtn').onclick = renderSystemShareModal;
+    document.querySelectorAll('[data-brand-goto]').forEach(bc=>{
+      bc.onclick = ()=>{ brandReportFilter.brand = bc.dataset.brandGoto; setView('brandreport'); };
+    });
+  }
+  else if(currentView === 'clients'){
+    document.getElementById('openAddClientBtn').onclick = openAddClientModal;
+    document.getElementById('shareFormBtn').onclick = openShareFormModal;
+    document.getElementById('fq').oninput = (e)=>{ listFilters.q = e.target.value; render(); const el=document.getElementById('fq'); el.focus(); el.setSelectionRange(listFilters.q.length, listFilters.q.length); };
+    document.getElementById('fstatus').onchange = (e)=>{ listFilters.status = e.target.value; render(); };
+    document.getElementById('frating').onchange = (e)=>{ listFilters.rating = e.target.value; render(); };
+    document.querySelectorAll('.brand-card').forEach(bc=>{
+      bc.onclick = ()=>{ listFilters.brand = (listFilters.brand===bc.dataset.brand) ? '' : bc.dataset.brand; render(); };
+    });
+    const clearBrand = document.getElementById('clearBrand');
+    if(clearBrand) clearBrand.onclick = ()=>{ listFilters.brand=''; render(); };
+    document.getElementById('exportClientsExcelBtn').onclick = ()=> exportClientsExcel(getFilteredListClients());
+  }
+  else if(currentView === 'brands'){
+    document.getElementById('openAddBrandBtn').onclick = openAddBrandModal;
+    document.querySelectorAll('[data-removebrand]').forEach(btn=>{
+      btn.onclick = ()=>{
+        if(BRANDS.length<=1){ alert('يجب أن تبقى علامة تجارية واحدة على الأقل'); return; }
+        if(!confirm('حذف هذه العلامة التجارية؟')) return;
+        BRANDS.splice(parseInt(btn.dataset.removebrand, 10), 1);
+        saveLists();
+        render();
+      };
+    });
+  }
+  else if(currentView === 'brandreport'){
+    document.getElementById('brandReportSearchBtn').onclick = ()=>{
+      brandReportFilter.brand = document.getElementById('brandReportSelect').value;
+      render();
+    };
+    document.getElementById('brandReportSelect').onchange = (e)=>{
+      brandReportFilter.brand = e.target.value;
+      render();
+    };
+    const sendBtn = document.getElementById('brandReportSendBtn');
+    if(sendBtn){
+      sendBtn.onclick = ()=>{
+        sendMessagesFilter = { q:"", brand: brandReportFilter.brand };
+        setView('sentmessages');
+      };
+    }
+  }
+  else if(currentView === 'comms'){
+    document.getElementById('commsSearchBtn').onclick = ()=> render();
+    document.getElementById('cq').oninput = (e)=>{ commFilters.q = e.target.value; render(); const el=document.getElementById('cq'); el.focus(); el.setSelectionRange(commFilters.q.length, commFilters.q.length); };
+    document.getElementById('cstatus').onchange = (e)=>{ commFilters.status = e.target.value; render(); };
+  }
+  else if(currentView === 'responsecategories'){
+    document.getElementById('addStatusForm').onsubmit = (e)=>{
+      e.preventDefault();
+      const input = document.getElementById('newStatusInput');
+      const val = input.value.trim();
+      if(!val) return;
+      if(COMM_STATUSES.includes(val)){ alert('هذه الحالة موجودة بالفعل'); return; }
+      COMM_STATUSES.push(val);
+      saveLists();
+      render();
+    };
+    document.querySelectorAll('[data-removestatus]').forEach(btn=>{
+      btn.onclick = ()=>{
+        if(COMM_STATUSES.length<=1){ alert('يجب أن تبقى حالة واحدة على الأقل'); return; }
+        if(!confirm('حذف هذه الحالة؟')) return;
+        COMM_STATUSES.splice(parseInt(btn.dataset.removestatus, 10), 1);
+        saveLists();
+        render();
+      };
+    });
+  }
+  else if(currentView === 'users'){
+    document.getElementById('addUserForm').onsubmit = (e)=>{
+      e.preventDefault();
+      const name = document.getElementById('newUserName').value.trim();
+      const username = document.getElementById('newUserUsername').value.trim();
+      const password = document.getElementById('newUserPassword').value.trim();
+      if(!name || !username || !password) return;
+      if(users.find(x=>x.username===username)){ alert('اسم المستخدم هذا موجود بالفعل، اختر اسماً آخر'); return; }
+      const u = { id: 'u'+Date.now(), name, username, password, createdAt: new Date().toISOString(), avatar:null };
+      users.push(u);
+      saveUsers();
+      render();
+    };
+    document.querySelectorAll('[data-edituser]').forEach(btn=>{
+      btn.onclick = ()=>{ editingUserId = btn.dataset.edituser; render(); };
+    });
+    document.querySelectorAll('[data-canceledit]').forEach(btn=>{
+      btn.onclick = ()=>{ editingUserId = null; render(); };
+    });
+    document.querySelectorAll('[data-edituserform]').forEach(form=>{
+      form.onsubmit = (e)=>{
+        e.preventDefault();
+        const u = users.find(x=>x.id===form.dataset.edituserform);
+        if(!u) return;
+        const f = e.target;
+        const newUsername = f.username.value.trim();
+        if(users.find(x=>x.username===newUsername && x.id!==u.id)){ alert('اسم المستخدم هذا مستخدم من حساب آخر'); return; }
+        u.name = f.name.value.trim();
+        u.username = newUsername;
+        u.password = f.password.value.trim();
+        saveUsers();
+        editingUserId = null;
+        render();
+      };
+    });
+    document.querySelectorAll('[data-deleteuser]').forEach(btn=>{
+      btn.onclick = ()=>{
+        if(!confirm('هل تريد حذف هذا الحساب؟')) return;
+        const id = btn.dataset.deleteuser;
+        users = users.filter(x=>x.id!==id);
+        saveUsers();
+        if(id === currentUserId){
+          localStorage.removeItem('fcrm_logged_in_user');
+          showLogin();
+          return;
+        }
+        render();
+      };
+    });
+    document.querySelectorAll('[data-avatar-for]').forEach(input=>{
+      input.onchange = (e)=>{
+        const file = e.target.files[0];
+        if(!file) return;
+        readFileAsDataURL(file, (dataUrl)=>{
+          const u = users.find(x=>x.id===input.dataset.avatarFor);
+          if(u){ u.avatar = dataUrl; saveUsers(); render(); }
+        });
+      };
+    });
+  }
+  else if(currentView === 'share'){
+    document.getElementById('exportBtn').onclick = exportData;
+    document.getElementById('importBtn').onclick = ()=> document.getElementById('importFileInput').click();
+    document.getElementById('exportExcelAllBtn').onclick = exportClientsExcel;
+    document.getElementById('exportExcelReportBtn').onclick = exportReportExcel;
+    document.getElementById('downloadTemplateBtn').onclick = downloadExcelTemplate;
+    document.getElementById('importExcelBtn').onclick = ()=> document.getElementById('importExcelInput').click();
+  }
+  else if(currentView === 'messages'){
+    document.getElementById('addTemplateForm').onsubmit = (e)=>{
+      e.preventDefault();
+      const title = document.getElementById('newTemplateTitle').value.trim();
+      const text = document.getElementById('newTemplateText').value.trim();
+      if(!title || !text) return;
+      MESSAGE_TEMPLATES.push({ id:'tpl'+Date.now(), title, text });
+      saveLists();
+      render();
+    };
+    document.querySelectorAll('[data-removetemplate]').forEach(btn=>{
+      btn.onclick = ()=>{
+        if(!confirm('حذف هذا القالب؟')) return;
+        MESSAGE_TEMPLATES.splice(parseInt(btn.dataset.removetemplate, 10), 1);
+        saveLists();
+        render();
+      };
+    });
+    document.querySelectorAll('[data-edittemplate]').forEach(btn=>{
+      btn.onclick = ()=>{ editingTemplateIdx = parseInt(btn.dataset.edittemplate, 10); render(); };
+    });
+    document.querySelectorAll('[data-canceltemplateedit]').forEach(btn=>{
+      btn.onclick = ()=>{ editingTemplateIdx = null; render(); };
+    });
+    document.querySelectorAll('[data-edittemplateform]').forEach(form=>{
+      form.onsubmit = (e)=>{
+        e.preventDefault();
+        const idx = parseInt(form.dataset.edittemplateform, 10);
+        const title = form.title.value.trim();
+        const text = form.text.value.trim();
+        if(!title || !text) return;
+        MESSAGE_TEMPLATES[idx] = { ...MESSAGE_TEMPLATES[idx], title, text };
+        saveLists();
+        editingTemplateIdx = null;
+        render();
+      };
+    });
+  }
+  else if(currentView === 'sentmessages'){
+    const searchInput = document.getElementById('sendSearchInput');
+    if(searchInput){
+      searchInput.oninput = (e)=>{ sendMessagesFilter.q = e.target.value; render(); const el=document.getElementById('sendSearchInput'); el.focus(); el.setSelectionRange(sendMessagesFilter.q.length, sendMessagesFilter.q.length); };
+    }
+    const brandFilter = document.getElementById('sendBrandFilter');
+    if(brandFilter) brandFilter.onchange = (e)=>{ sendMessagesFilter.brand = e.target.value; render(); };
+    document.querySelectorAll('[data-sendrow]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.dataset.sendrow;
+        const c = clients.find(x=>x.id===id);
+        if(!c) return;
+        const row = btn.closest('tr');
+        const templateId = row.querySelector('.send-row-template').value;
+        const channel = row.querySelector('.send-row-channel').value;
+        const template = MESSAGE_TEMPLATES.find(t=>t.id===templateId);
+        if(!template){ alert('يرجى اختيار قالب رسالة'); return; }
+        if(channel==='email' && !c.email){ alert('لا يوجد بريد إلكتروني مسجّل لهذا العميل'); return; }
+        if(channel==='whatsapp' && !c.phone){ alert('لا يوجد رقم جوال مسجّل لهذا العميل'); return; }
+        const text = fillTemplate(template.text, c);
+        if(channel==='email'){
+          window.open(gmailComposeLink(c.email, template.title, text), '_blank');
+          logSentMessage(c, 'إيميل', template.title, text);
+          alert(`تم فتح Gmail لإرسال الرسالة لـ ${c.name} (${c.email}). أكمل الإرسال من هناك بالضغط على "إرسال" داخل Gmail.`);
+        }else{
+          window.open(waLinkWithText(c, text), '_blank');
+          logSentMessage(c, 'واتساب', template.title, text);
+          alert(`تم فتح واتساب لإرسال الرسالة لـ ${c.name}، ويمكنك متابعته من "قائمة التواصل".`);
+        }
+      };
+    });
+  }
+  else if(currentView === 'contactlog'){
+    document.getElementById('sentChannelFilter').onchange = (e)=>{ sentMessagesFilter.channel = e.target.value; render(); };
+  }
+  else if(currentView === 'settings'){
+    document.getElementById('logoUpload').onchange = (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      readFileAsDataURL(file, (dataUrl)=>{ systemLogo = dataUrl; saveLogo(); applyLogoDisplays(); render(); });
+    };
+    const removeLogoBtn = document.getElementById('removeLogoBtn');
+    if(removeLogoBtn) removeLogoBtn.onclick = ()=>{ systemLogo = null; saveLogo(); applyLogoDisplays(); render(); };
+
+    document.querySelectorAll('[data-removelist]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const [key, idxStr] = btn.dataset.removelist.split('|');
+        const idx = parseInt(idxStr, 10);
+        const arr = getListArray(key);
+        if(arr.length <= 1){ alert('يجب أن يبقى عنصر واحد على الأقل في القائمة'); return; }
+        if(!confirm('حذف هذا العنصر من القائمة؟')) return;
+        arr.splice(idx, 1);
+        saveLists();
+        render();
+      };
+    });
+    document.querySelectorAll('[data-additem]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const key = btn.dataset.additem;
+        const input = document.querySelector(`[data-newitem="${key}"]`);
+        const val = input.value.trim();
+        if(!val) return;
+        const arr = getListArray(key);
+        if(arr.includes(val)){ alert('هذا العنصر موجود بالفعل'); return; }
+        arr.push(val);
+        saveLists();
+        render();
+      };
+    });
+    document.querySelectorAll('[data-addcountry]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const key = btn.dataset.addcountry;
+        const nameInput = document.querySelector(`[data-newcountryname="${key}"]`);
+        const codeInput = document.querySelector(`[data-newcountrycode="${key}"]`);
+        const name = nameInput.value.trim();
+        let code = codeInput.value.trim();
+        if(!name || !code) return;
+        if(!code.startsWith('+')) code = '+' + code.replace(/\D/g,'');
+        COUNTRIES.push({name, code});
+        saveLists();
+        render();
+      };
+    });
+  }
+  const reportExcelBtn = document.getElementById('exportReportExcelBtn');
+  if(reportExcelBtn) reportExcelBtn.onclick = exportReportExcel;
+}
+
+document.getElementById('importFileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) importDataFromFile(file);
+  e.target.value = '';
+});
+document.getElementById('importExcelInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) importClientsFromExcel(file);
+  e.target.value = '';
+});
+
+/* ============== Init ============== */
+loadData();
+if(new URLSearchParams(location.search).get('public') === '1'){
+  renderPublicForm();
+}else{
+  const savedUserId = localStorage.getItem('fcrm_logged_in_user');
+  if(savedUserId && users.find(u=>u.id===savedUserId)){
+    currentUserId = savedUserId;
+    showApp();
+  }else{
+    showLogin();
+  }
+}
+</script>
+
+
+</body></html>
