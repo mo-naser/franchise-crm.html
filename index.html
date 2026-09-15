@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl"><head>
+<html lang="ar" dir="rtl">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام إدارة عملاء الفرنشايز</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&amp;family=Almarai:wght@400;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&family=Almarai:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
@@ -45,7 +46,8 @@
     width:230px; flex-shrink:0; background:var(--ink); color:#EDE8DC;
     display:flex; flex-direction:column; padding:26px 18px; gap:22px;
   }
-  .brand-mark{ font-size:19px; font-weight:900; line-height:1.35; }
+  .brand-mark{ font-size:19px; font-weight:900; line-height:1.35; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+  .brand-title-text{ display:block; }
   .brand-mark span{ display:block; font-family:'Almarai',sans-serif; font-size:12px; font-weight:400; color:#B8B0A0; margin-top:4px; }
   .nav{ display:flex; flex-direction:column; gap:4px; }
   .nav-item{
@@ -59,6 +61,7 @@
   .nav-group{ display:flex; flex-direction:column; }
   .nav-subitems{ display:flex; flex-direction:column; gap:2px; margin:2px 14px 2px 0; padding-right:12px; border-right:2px solid rgba(255,255,255,0.15); }
   .nav-subitem{ font-size:12.5px; padding:8px 12px; }
+  .nav-item.nav-disabled{ opacity:.32; cursor:not-allowed; }
   .sidebar-foot{ margin-top:auto; font-size:11px; color:#8B846F; line-height:1.6; }
 
   /* ---------- Main ---------- */
@@ -89,6 +92,14 @@
     cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
   }
   .voice-cmd-btn.listening{ background:var(--danger-bg); border-color:var(--danger); animation:pulseVoice 1s infinite; }
+  .notif-badge{
+    position:absolute; top:-4px; left:-4px; background:var(--danger); color:#fff; font-size:10px; font-weight:900;
+    border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-family:'Tajawal',sans-serif;
+  }
+  .attach-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:5px 6px 5px 12px; font-size:11.5px; margin:0 4px 6px 0; }
+  .attach-chip button{ background:none; border:none; color:var(--danger); cursor:pointer; font-size:13px; font-weight:700; }
+  .attendee-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--sage-bg); color:var(--sage); border-radius:20px; padding:5px 6px 5px 12px; font-size:11.5px; margin:0 4px 6px 0; font-weight:700; }
+  .attendee-chip button{ background:none; border:none; color:var(--danger); cursor:pointer; font-size:13px; font-weight:700; }
   @keyframes pulseVoice{ 0%,100%{ opacity:1; } 50%{ opacity:.55; } }
   .user-menu{ position:relative; }
   .user-menu-trigger{
@@ -300,6 +311,16 @@
   .list-chip button{ background:none; border:none; color:var(--danger); cursor:pointer; font-size:15px; font-weight:700; line-height:1; }
   .list-add-row{ display:flex; gap:8px; flex-wrap:wrap; }
   .list-add-row input{ padding:8px 10px; border-radius:6px; border:1.5px solid var(--border); font-family:'Almarai',sans-serif; font-size:12.5px; }
+  .drag-row{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; margin-bottom:6px;
+    cursor:grab; user-select:none; border:1px solid transparent;
+  }
+  .drag-row.dragging{ opacity:.4; }
+  .drag-row.drag-over{ border-top:2px solid var(--accent); }
+  .drag-handle{ font-size:14px; color:var(--muted); flex-shrink:0; }
+  .drag-label{ flex:1; font-size:13px; font-weight:700; font-family:'Tajawal',sans-serif; }
+  .drag-remove{ background:none; border:none; color:var(--danger); cursor:pointer; font-size:15px; font-weight:700; flex-shrink:0; }
+  .required-star{ color:var(--danger); font-weight:900; margin-left:2px; }
 
   /* ---------- User account cards ---------- */
   .user-edit-form{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
@@ -325,25 +346,29 @@
 </head>
 <body>
 
-<div id="loginScreen" class="hidden">
+<div id="loginScreen">
   <div class="login-card" id="loginCard"></div>
 </div>
 
-<div class="app" id="appRoot" style="display: flex;">
+<div class="app" id="appRoot" style="display:none;">
   <aside class="sidebar">
     <div class="brand-mark" id="sidebarBrandMark">إدارة عملاء الفرنشايز<span>سجل العملاء والمتابعة</span></div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="list">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
         الرئيسية
       </button>
       <button class="nav-item" data-view="clients">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
         العملاء
+      </button>
+      <button class="nav-item" data-view="contacts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        جهات الاتصال
       </button>
       <div class="nav-group">
         <button class="nav-item" data-view="brands">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 12 22l-9-9V3h10z"></path><circle cx="7.5" cy="7.5" r="1.5"></circle></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 12 22l-9-9V3h10z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
           العلامات التجارية
         </button>
         <div class="nav-subitems">
@@ -351,8 +376,17 @@
         </div>
       </div>
       <div class="nav-group">
+        <button class="nav-item" data-view="meetings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          الاجتماعات
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-item nav-subitem" data-view="meetingsreport">تقرير الاجتماعات</button>
+        </div>
+      </div>
+      <div class="nav-group">
         <button class="nav-item" data-view="comms">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           التواصل مع العملاء
         </button>
         <div class="nav-subitems">
@@ -363,85 +397,37 @@
           <button class="nav-item nav-subitem" data-view="contactlog">قائمة التواصل</button>
         </div>
       </div>
+      <div class="nav-group">
+        <button class="nav-item" data-view="tasks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          المهام
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-item nav-subitem" data-view="tasksreport">تقرير المهام</button>
+          <button class="nav-item nav-subitem" data-view="staffperformance">أداء الموظفين</button>
+        </div>
+      </div>
       <button class="nav-item" data-view="report">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12" y="8" width="3" height="10"></rect><rect x="17" y="5" width="3" height="13"></rect></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
         التقارير
       </button>
       <button class="nav-item" data-view="users">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         المستخدمون
       </button>
       <button class="nav-item" data-view="share">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"></line><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>
         المشاركة والنسخ
       </button>
       <button class="nav-item" data-view="settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         الإعدادات
       </button>
     </nav>
     <div class="sidebar-foot">تُحفظ البيانات في هذا الجهاز والمتصفح تلقائياً — تعمل بدون إنترنت.<br><button class="link-btn" id="logoutBtn" style="margin-top:8px;">تسجيل الخروج</button></div>
   </aside>
 
-  <main class="main" id="main">
-    <div class="user-menu-row">
-      <div class="global-search-wrap">
-        <input type="text" id="globalSearchInput" placeholder="🔍 بحث عن عميل بالاسم أو الجوال..." value="" autocomplete="off">
-        
-      </div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <button class="voice-cmd-btn " id="voiceCmdBtn" title="أمر صوتي">🎤</button>
-        <div class="user-menu ">
-          <button class="user-menu-trigger" id="userMenuTrigger">
-            <span class="avatar-placeholder">م</span>
-            <span class="uname">مححمد نصر الدين</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="user-menu-dropdown hidden">
-            <span class="avatar-placeholder-lg">م</span>
-            <span class="uname">مححمد نصر الدين</span>
-            <button class="logout-btn" data-logout="1">تسجيل الخروج</button>
-            <button class="link-btn manage-link" data-goto="users">إدارة الحسابات</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  
-    <div class="topbar">
-      <div><h1>الرئيسية</h1><p>نظرة عامة على العملاء والعلامات التجارية وحالة التواصل</p></div>
-      <div class="btn-row">
-        <button class="btn btn-ghost" id="systemShareBtn">مشاركة النظام</button>
-        <button class="btn btn-ghost" data-goto="share">استيراد / تصدير البيانات</button>
-        <button class="btn btn-primary" id="dashAddClientBtn">+ إضافة عميل</button>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">1</div><div class="stat-label">إجمالي العملاء</div></div>
-      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">تم التأكيد</div></div>
-      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">تم الرد</div></div>
-      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">لم يتم الرد</div></div>
-      <div class="stat-card"><div class="stat-num">1</div><div class="stat-label">خبرة فرنشايز سابقة</div></div>
-    </div>
-
-    <div class="section-label">العلامات التجارية</div>
-    <div class="brand-cards"><div class="brand-card" data-brand-goto="مشاوي صح">
-      <div class="bname">مشاوي صح</div>
-      <div class="bcount">0</div>
-    </div><div class="brand-card" data-brand-goto="حاشي صح">
-      <div class="bname">حاشي صح</div>
-      <div class="bcount">0</div>
-    </div><div class="brand-card" data-brand-goto="فطورك صح">
-      <div class="bname">فطورك صح</div>
-      <div class="bcount">1</div>
-    </div></div>
-
-    <div class="share-card" style="margin-top:24px; max-width:none;">
-      <h3>قائمة العملاء الكاملة</h3>
-      <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">لعرض أسماء العملاء وبياناتهم، والبحث والفلترة، افتح صفحة "العملاء" من القائمة الجانبية.</p>
-      <button class="btn btn-primary btn-sm" data-goto="clients">فتح قائمة العملاء</button>
-    </div>
-  </main>
+  <main class="main" id="main"></main>
 </div>
 
 <div class="overlay hidden" id="overlay">
@@ -460,40 +446,28 @@
   <div class="modal" id="brandModal"></div>
 </div>
 
+<div class="overlay hidden" id="meetingOverlay">
+  <div class="modal" id="meetingModal"></div>
+</div>
+
+<div class="overlay hidden" id="taskOverlay">
+  <div class="modal" id="taskModal"></div>
+</div>
+
+<div class="overlay hidden" id="contactOverlay">
+  <div class="modal" id="contactModal"></div>
+</div>
+
+<div class="overlay hidden" id="attachPreviewOverlay">
+  <div class="modal" id="attachPreviewModal"></div>
+</div>
+
 <div class="overlay hidden" id="voiceOverlay">
   <div class="modal" id="voiceModal"></div>
 </div>
 
-<div class="overlay" id="systemShareOverlay">
-  <div class="modal" id="systemShareModal">
-    <div class="modal-head">
-      <div class="modal-head-row">
-        <div><h2>مشاركة النظام</h2><div class="sub">شارك ملف النظام أو رابطه مع فريقك أو فروعك الأخرى</div></div>
-        <button class="modal-close" id="closeSystemShareBtn">✕</button>
-      </div>
-    </div>
-    <div class="modal-body">
-      <div class="share-card">
-        <h3>١. مشاركة ملف النظام مباشرة</h3>
-        <p>هذا يرسل نسخة من الملف نفسه — يعمل فوراً على أي جهاز يستقبله، لكن بياناته منفصلة عن بياناتك (استخدم "استيراد/تصدير البيانات" للمزامنة).</p>
-        <div class="btn-row">
-          <button class="btn btn-primary btn-sm" id="downloadSnapshotBtn">تنزيل نسخة من الملف</button>
-          <button class="btn btn-wa btn-sm" id="nativeShareBtn">مشاركة عبر واتساب / البريد مباشرة</button>
-        </div>
-        
-      </div>
-
-      <div class="share-card">
-        <h3>٢. مشاركة رابط النظام (QR)</h3>
-        <p>إذا رفعت هذا الملف على استضافة ويب (رابط عام)، الصق الرابط هنا لتوليد QR وزر مشاركة سريع.</p>
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-          <input type="text" id="systemLinkInput" placeholder="https://example.com/franchise-crm.html" dir="ltr" style="flex:1; padding:9px 12px; border-radius:6px; border:1.5px solid var(--border);">
-          <button class="btn btn-ghost btn-sm" id="generateSystemQrBtn">توليد QR</button>
-        </div>
-        <div id="systemQrResult"></div>
-      </div>
-    </div>
-  </div>
+<div class="overlay hidden" id="systemShareOverlay">
+  <div class="modal" id="systemShareModal"></div>
 </div>
 
 <input type="file" id="importFileInput" accept="application/json" style="display:none;">
@@ -501,6 +475,29 @@
 
 <script>
 /* ============== Default lists (mutable — user can add/edit/delete in Settings) ============== */
+const ALL_NAV_VIEWS = [
+  {id:'list', label:'الرئيسية'},
+  {id:'clients', label:'العملاء'},
+  {id:'contacts', label:'جهات الاتصال'},
+  {id:'brands', label:'العلامات التجارية'},
+  {id:'brandreport', label:'تقرير عملاء العلامات'},
+  {id:'meetings', label:'الاجتماعات'},
+  {id:'meetingsreport', label:'تقرير الاجتماعات'},
+  {id:'comms', label:'حالة الردود'},
+  {id:'responsecategories', label:'استجابة العملاء'},
+  {id:'messages', label:'محتوى الرسائل'},
+  {id:'sentmessages', label:'إرسال رسالة'},
+  {id:'contactlog', label:'قائمة التواصل'},
+  {id:'tasks', label:'المهام'},
+  {id:'tasksreport', label:'تقرير المهام'},
+  {id:'staffperformance', label:'أداء الموظفين'},
+  {id:'report', label:'التقارير'},
+  {id:'users', label:'المستخدمون'},
+  {id:'share', label:'المشاركة والنسخ'},
+  {id:'settings', label:'الإعدادات'}
+];
+const DEFAULT_USER_PERMISSIONS = ['list','clients','contacts','brands','brandreport','meetings','meetingsreport','comms','responsecategories','messages','sentmessages','contactlog','tasks','tasksreport','report'];
+
 const DEFAULT_LISTS = {
   brands: ["مشاوي صح","حاشي صح","فطورك صح"],
   countries: [
@@ -513,13 +510,31 @@ const DEFAULT_LISTS = {
   entityTypes: ["شركة","مؤسسة","فرد"],
   commStatuses: ["لم يتم الرد 1","لم يتم الرد 2","تم الرد إيجابي","تم الرد متردد","معتذر"],
   ratingOptions: ["ممتاز","جيد جدا","جيد"],
+  heardAboutOptions: ["صديق","التواصل الاجتماعي"],
+  capitalOptions: ["من 500 ألف إلى مليون ريال","مليون ريال فأكثر"],
+  fundingOptions: ["تمويل شخصي","تمويل من البنوك"],
+  targetRegions: ["الرياض","جدة","الدمام","مكة المكرمة","المدينة المنورة"],
+  meetingTypes: ["اجتماع عملاء"],
+  meetingLocations: ["المكتب الرئيسي"],
   messageTemplates: [
-    { id:"t1", title:"رسالة تعريفية", text:'مرحباً {name}، نتواصل معكم بخصوص طلب الحصول على فرنشايز علامة "{brand}". يسعدنا الإجابة عن أي استفسار.' },
-    { id:"t2", title:"متابعة", text:"مرحباً {name}، نود المتابعة معكم بخصوص طلبكم لعلامة \"{brand}\" — هل توفر لديكم وقت للحديث قريباً؟" },
-    { id:"t3", title:"تذكير", text:"مرحباً {name}، نذكّركم بطلبكم الخاص بعلامة \"{brand}\"، بانتظار ردكم." }
+    { id:"t1", title:"رسالة تعريفية", text:'مرحباً {name}، نتواصل معكم بخصوص طلب الحصول على فرنشايز علامة "{brand}". يسعدنا الإجابة عن أي استفسار.', color:"sage" },
+    { id:"t2", title:"متابعة", text:"مرحباً {name}، نود المتابعة معكم بخصوص طلبكم لعلامة \"{brand}\" — هل توفر لديكم وقت للحديث قريباً؟", color:"wait" },
+    { id:"t3", title:"تذكير", text:"مرحباً {name}، نذكّركم بطلبكم الخاص بعلامة \"{brand}\"، بانتظار ردكم.", color:"hesit" }
   ]
 };
+const TEMPLATE_COLORS = ["sage","wait","hesit","repeat","apology","good"];
 let BRANDS = [], COUNTRIES = [], ENTITY_TYPES = [], COMM_STATUSES = [], RATING_OPTIONS = [], MESSAGE_TEMPLATES = [];
+let HEARD_ABOUT_OPTIONS = [], CAPITAL_OPTIONS = [], FUNDING_OPTIONS = [], TARGET_REGIONS = [], MEETING_TYPES = [], MEETING_LOCATIONS = [];
+let meetings = [];
+let contacts = [];
+let editingContactId = null;
+let navLabelOverrides = {};
+let contactsSelected = new Set();
+let tasks = [];
+let editingTaskId = null;
+let tasksFilter = { status:'', assignedTo:'' };
+let tasksReportFilter = { fromDate:'', toDate:'', assignedTo:'', status:'' };
+const TASK_STATUSES = ['قيد التنفيذ', 'منجزة'];
 
 /* ============== State ============== */
 let clients = [];
@@ -535,12 +550,18 @@ let openStatusMenuFor = null;
 let userMenuOpen = false;
 let globalSearchQuery = '';
 let globalSearchOpen = false;
+let notifOpen = false;
+let editingMeetingId = null;
+let meetingsFilter = { fromDate:'', toDate:'', type:'', location:'' };
 let voiceRecognition = null;
 let voiceListening = false;
 let sentMessages = [];
 let sentMessagesFilter = { channel:'' };
+let contactLogFilter = { fromDate:'', toDate:'', includeStatus:true, includeMessages:true, channel:'' };
+let commsSelected = new Set();
+let sendMessagesSelected = new Set();
 let editingUserId = null;
-let listFilters = { q:"", brand:"", status:"", rating:"" };
+let listFilters = { q:"", brand:"", status:"", rating:"", assignedTo:"" };
 let brandReportFilter = { brand:"" };
 let commFilters = { q:"", status:"", rating:"" };
 let addFormState = { entityType:"شركة", triedFranchise:null, brand:"", initialRating:"" };
@@ -555,6 +576,16 @@ function loadData(){
   const beforeCount = users.length;
   users = users.filter(u => u && typeof u.username === 'string' && u.username && typeof u.password === 'string' && u.password);
   if(users.length !== beforeCount) saveUsers();
+  // migrate: any user created before roles existed becomes super_admin (avoids lockout)
+  let rolesMigrated = false;
+  users.forEach(u=>{
+    if(!u.role){
+      u.role = 'super_admin';
+      u.permissions = ALL_NAV_VIEWS.map(v=>v.id);
+      rolesMigrated = true;
+    }
+  });
+  if(rolesMigrated) saveUsers();
   systemLogo = localStorage.getItem('fcrm_logo') || null;
   let lists = null;
   try{ lists = JSON.parse(localStorage.getItem('fcrm_lists')); }catch(e){ lists = null; }
@@ -563,8 +594,27 @@ function loadData(){
   COUNTRIES = lists.countries || DEFAULT_LISTS.countries.slice();
   ENTITY_TYPES = lists.entityTypes || DEFAULT_LISTS.entityTypes.slice();
   COMM_STATUSES = lists.commStatuses || DEFAULT_LISTS.commStatuses.slice();
+  STATUS_COLORS = lists.statusColors || {};
+  let statusColorsMigrated = false;
+  COMM_STATUSES.forEach(s=>{
+    if(!STATUS_COLORS[s]){ assignStatusColor(s); statusColorsMigrated = true; }
+  });
   RATING_OPTIONS = lists.ratingOptions || DEFAULT_LISTS.ratingOptions.slice();
   MESSAGE_TEMPLATES = lists.messageTemplates || DEFAULT_LISTS.messageTemplates.slice();
+  let templateColorsMigrated = false;
+  MESSAGE_TEMPLATES.forEach((t, idx)=>{
+    if(!t.color){ t.color = TEMPLATE_COLORS[idx % TEMPLATE_COLORS.length]; templateColorsMigrated = true; }
+  });
+  HEARD_ABOUT_OPTIONS = lists.heardAboutOptions || DEFAULT_LISTS.heardAboutOptions.slice();
+  CAPITAL_OPTIONS = lists.capitalOptions || DEFAULT_LISTS.capitalOptions.slice();
+  FUNDING_OPTIONS = lists.fundingOptions || DEFAULT_LISTS.fundingOptions.slice();
+  TARGET_REGIONS = lists.targetRegions || DEFAULT_LISTS.targetRegions.slice();
+  MEETING_TYPES = lists.meetingTypes || DEFAULT_LISTS.meetingTypes.slice();
+  MEETING_LOCATIONS = lists.meetingLocations || DEFAULT_LISTS.meetingLocations.slice();
+  try{ meetings = JSON.parse(localStorage.getItem('fcrm_meetings') || '[]'); }catch(e){ meetings = []; }
+  try{ tasks = JSON.parse(localStorage.getItem('fcrm_tasks') || '[]'); }catch(e){ tasks = []; }
+  try{ contacts = JSON.parse(localStorage.getItem('fcrm_contacts') || '[]'); }catch(e){ contacts = []; }
+  try{ navLabelOverrides = JSON.parse(localStorage.getItem('fcrm_nav_labels') || '{}'); }catch(e){ navLabelOverrides = {}; }
 
   // one-time migration: upgrade any earlier default communication-status set to the current one
   const KNOWN_OLD_COMM_STATUS_SETS = [
@@ -575,6 +625,8 @@ function loadData(){
     COMM_STATUSES = DEFAULT_LISTS.commStatuses.slice();
     saveLists();
   }
+  if(templateColorsMigrated) saveLists();
+  if(statusColorsMigrated) saveLists();
 }
 function saveClients(){ localStorage.setItem('fcrm_clients', JSON.stringify(clients)); }
 function saveSentMessages(){ localStorage.setItem('fcrm_sent_messages', JSON.stringify(sentMessages)); }
@@ -587,7 +639,8 @@ function logSentMessage(c, channel, templateTitle, text){
     clientPhone: (c.countryCode||'') + ' ' + (c.phone||''),
     channel,
     templateTitle: templateTitle || '',
-    text
+    text,
+    byUser: currentUserName() || ''
   });
   saveSentMessages();
 }
@@ -595,16 +648,21 @@ function saveUsers(){ localStorage.setItem('fcrm_users', JSON.stringify(users));
 function saveLogo(){ if(systemLogo) localStorage.setItem('fcrm_logo', systemLogo); else localStorage.removeItem('fcrm_logo'); }
 function saveLists(){
   localStorage.setItem('fcrm_lists', JSON.stringify({
-    brands:BRANDS, countries:COUNTRIES, entityTypes:ENTITY_TYPES, commStatuses:COMM_STATUSES, ratingOptions:RATING_OPTIONS, messageTemplates:MESSAGE_TEMPLATES
+    brands:BRANDS, countries:COUNTRIES, entityTypes:ENTITY_TYPES, commStatuses:COMM_STATUSES, ratingOptions:RATING_OPTIONS, messageTemplates:MESSAGE_TEMPLATES,
+    heardAboutOptions:HEARD_ABOUT_OPTIONS, capitalOptions:CAPITAL_OPTIONS, fundingOptions:FUNDING_OPTIONS,
+    targetRegions:TARGET_REGIONS, meetingTypes:MEETING_TYPES, meetingLocations:MEETING_LOCATIONS, statusColors:STATUS_COLORS
   }));
 }
+function saveMeetings(){ localStorage.setItem('fcrm_meetings', JSON.stringify(meetings)); }
+function saveTasks(){ localStorage.setItem('fcrm_tasks', JSON.stringify(tasks)); }
+function saveContacts(){ localStorage.setItem('fcrm_contacts', JSON.stringify(contacts)); }
 
 /* ============== Login (per-account username/password) ============== */
 function applyLogoDisplays(){
   const sidebarMark = document.getElementById('sidebarBrandMark');
   if(sidebarMark){
     sidebarMark.innerHTML = systemLogo
-      ? `<img src="${systemLogo}" class="sidebar-logo" alt="شعار النظام">`
+      ? `<img src="${systemLogo}" class="sidebar-logo" alt="شعار النظام"><span class="brand-title-text">إدارة عملاء الفرنشايز<span>سجل العملاء والمتابعة</span></span>`
       : `إدارة عملاء الفرنشايز<span>سجل العملاء والمتابعة</span>`;
   }
 }
@@ -631,7 +689,7 @@ function renderLoginScreen(){
       const username = document.getElementById('setupUsername').value.trim();
       const password = document.getElementById('setupPassword').value;
       if(!name || !username || !password) return;
-      const u = { id:'u'+Date.now(), name, username, password, avatar:null, createdAt:new Date().toISOString() };
+      const u = { id:'u'+Date.now(), name, username, password, avatar:null, createdAt:new Date().toISOString(), role:'super_admin', permissions:ALL_NAV_VIEWS.map(v=>v.id) };
       users.push(u);
       saveUsers();
       currentUserId = u.id;
@@ -684,6 +742,8 @@ function showApp(){
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appRoot').style.display = 'flex';
   applyLogoDisplays();
+  applyNavPermissions();
+  applyNavLabelOverrides();
   currentView = 'list';
   render();
 }
@@ -708,35 +768,58 @@ function countryNameFromCode(code){ const f = COUNTRIES.find(c=>c.code===code); 
 function latestComm(c){ return (c.communications && c.communications.length) ? c.communications[c.communications.length-1] : null; }
 function latestRating(c){ return (c.ratings && c.ratings.length) ? c.ratings[c.ratings.length-1] : null; }
 function currentUserName(){ const u = users.find(x=>x.id===currentUserId); return u ? u.name : null; }
+const STATUS_COLOR_DEFS = {
+  done: { bg:'--sage-bg', fg:'--sage' },
+  pending: { bg:'--wait-bg', fg:'--wait' },
+  nope: { bg:'--danger-bg', fg:'--danger' },
+  hesit: { bg:'--hesit-bg', fg:'--hesit' },
+  repeat: { bg:'--repeat-bg', fg:'--repeat' },
+  apology: { bg:'--apology-bg', fg:'--apology' },
+  dismissed: { bg:'--dismissed-bg', fg:'--dismissed' }
+};
+const STATUS_COLOR_ORDER = Object.keys(STATUS_COLOR_DEFS);
+const DEFAULT_STATUS_COLORS = {
+  "لم يتم الرد 1": "nope", "لم يتم الرد 2": "repeat", "تم الرد إيجابي": "done",
+  "تم الرد متردد": "hesit", "معتذر": "apology",
+  "تم الرد": "pending", "لم يتم الرد": "nope", "تم الاعتماد": "done",
+  "متردد": "hesit", "تكرار المكالمة": "repeat", "تم التأكيد": "done", "صرف نظر": "dismissed"
+};
+let STATUS_COLORS = {};
+function assignStatusColor(status){
+  if(STATUS_COLORS[status]) return;
+  if(DEFAULT_STATUS_COLORS[status]){ STATUS_COLORS[status] = DEFAULT_STATUS_COLORS[status]; return; }
+  const usedCount = Object.keys(STATUS_COLORS).length;
+  STATUS_COLORS[status] = STATUS_COLOR_ORDER[usedCount % STATUS_COLOR_ORDER.length];
+}
+function cycleStatusColor(status){
+  const current = STATUS_COLORS[status];
+  const idx = STATUS_COLOR_ORDER.indexOf(current);
+  STATUS_COLORS[status] = STATUS_COLOR_ORDER[(idx + 1) % STATUS_COLOR_ORDER.length];
+}
 function commBadgeClass(status){
-  if(status==='تم الرد إيجابي' || status==='تم التأكيد' || status==='تم الاعتماد') return 'b-done';
-  if(status==='تم الرد متردد' || status==='متردد') return 'b-hesit';
-  if(status==='لم يتم الرد 1' || status==='لم يتم الرد') return 'b-nope';
-  if(status==='لم يتم الرد 2' || status==='تكرار المكالمة') return 'b-repeat';
-  if(status==='معتذر') return 'b-apology';
-  if(status==='صرف نظر') return 'b-dismissed';
-  if(status==='تم الرد') return 'b-pending';
-  return 'b-none';
+  const key = STATUS_COLORS[status];
+  return key ? 'b-'+key : 'b-none';
 }
 function rowTintClass(status){
-  if(status==='تم الرد إيجابي' || status==='تم التأكيد' || status==='تم الاعتماد') return 'row-tint-done';
-  if(status==='تم الرد متردد' || status==='متردد') return 'row-tint-hesit';
-  if(status==='لم يتم الرد 1' || status==='لم يتم الرد') return 'row-tint-nope';
-  if(status==='لم يتم الرد 2' || status==='تكرار المكالمة') return 'row-tint-repeat';
-  if(status==='معتذر') return 'row-tint-apology';
-  if(status==='صرف نظر') return 'row-tint-dismissed';
-  if(status==='تم الرد') return 'row-tint-pending';
-  return '';
+  const key = STATUS_COLORS[status];
+  return key ? 'row-tint-'+key : '';
 }
 function statusOptionStyle(status){
-  if(status==='تم الرد إيجابي' || status==='تم التأكيد' || status==='تم الاعتماد') return 'background:var(--sage-bg); color:var(--sage);';
-  if(status==='تم الرد متردد' || status==='متردد') return 'background:var(--hesit-bg); color:var(--hesit);';
-  if(status==='لم يتم الرد 1' || status==='لم يتم الرد') return 'background:var(--danger-bg); color:var(--danger);';
-  if(status==='لم يتم الرد 2' || status==='تكرار المكالمة') return 'background:var(--repeat-bg); color:var(--repeat);';
-  if(status==='معتذر') return 'background:var(--apology-bg); color:var(--apology);';
-  if(status==='صرف نظر') return 'background:var(--dismissed-bg); color:var(--dismissed);';
-  if(status==='تم الرد') return 'background:var(--wait-bg); color:var(--wait);';
-  return '';
+  const key = STATUS_COLORS[status];
+  if(!key) return '';
+  const def = STATUS_COLOR_DEFS[key];
+  return `background:var(${def.bg}); color:var(${def.fg});`;
+}
+function templateColorStyle(color){
+  const map = {
+    sage: 'background:var(--sage-bg); border-right:4px solid var(--sage);',
+    wait: 'background:var(--wait-bg); border-right:4px solid var(--wait);',
+    hesit: 'background:var(--hesit-bg); border-right:4px solid var(--hesit);',
+    repeat: 'background:var(--repeat-bg); border-right:4px solid var(--repeat);',
+    apology: 'background:var(--apology-bg); border-right:4px solid var(--apology);',
+    good: 'background:var(--good-bg); border-right:4px solid var(--good);'
+  };
+  return map[color] || 'border-right:4px solid var(--border);';
 }
 function statusMenuHtml(clientId){
   if(openStatusMenuFor !== clientId) return '';
@@ -781,6 +864,83 @@ function readFileAsDataURL(file, cb){
   reader.onload = (e)=> cb(e.target.result);
   reader.readAsDataURL(file);
 }
+/* ============== Generic print / PDF / share helpers (reused across pages) ============== */
+function printHtmlContent(title, bodyHtml){
+  const w = window.open('', '_blank');
+  if(!w){ alert('يرجى السماح بالنوافذ المنبثقة لهذا الموقع حتى تتمكن من الطباعة أو الحفظ كـ PDF.'); return; }
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${esc(title)}</title>
+    <style>
+      body{ font-family:'Tajawal','Almarai',Arial,sans-serif; padding:24px; color:#211D18; }
+      h1{ font-size:19px; margin-bottom:4px; }
+      .meta{ color:#87806E; font-size:12px; margin-bottom:18px; }
+      table{ width:100%; border-collapse:collapse; font-size:11.5px; }
+      th,td{ border:1px solid #ccc; padding:6px 9px; text-align:right; vertical-align:top; }
+      th{ background:#f2f0ea; font-weight:700; }
+      @media print{ body{ padding:0; } }
+    </style>
+    </head><body>
+      <h1>${esc(title)}</h1>
+      <div class="meta">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}</div>
+      ${bodyHtml}
+    </body></html>
+  `);
+  w.document.close();
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 500);
+}
+function tableToHtml(headers, rows){
+  return `<table>
+    <thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c==null?'':c)}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>`;
+}
+async function shareWorkbookOrDownload(wb, filename, shareTitle){
+  try{
+    const arrayBuffer = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([arrayBuffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const file = new File([blob], filename, {type: blob.type});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title: shareTitle || filename });
+      return;
+    }
+  }catch(err){
+    if(err && err.name === 'AbortError') return;
+  }
+  XLSX.writeFile(wb, filename);
+  alert('تم تنزيل ملف Excel — أرفقه يدوياً في محادثة واتساب لإرساله (مشاركة الملفات مباشرة عبر واتساب غير مدعومة في هذا المتصفح).');
+}
+
+function wireDragReorder(containerId, arr, onReorder){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  let dragFromIdx = null;
+  container.querySelectorAll('[data-dragidx]').forEach(row=>{
+    row.addEventListener('dragstart', (e)=>{
+      dragFromIdx = parseInt(row.dataset.dragidx, 10);
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      container.querySelectorAll('.drag-row').forEach(r=> r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('dragleave', ()=>{ row.classList.remove('drag-over'); });
+    row.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      const dropIdx = parseInt(row.dataset.dragidx, 10);
+      if(dragFromIdx === null || dragFromIdx === dropIdx) return;
+      const moved = arr.splice(dragFromIdx, 1)[0];
+      arr.splice(dropIdx, 0, moved);
+      dragFromIdx = null;
+      onReorder();
+    });
+  });
+}
 
 /* ============== Share the system itself (QR/link/file) ============== */
 function downloadSystemSnapshot(){
@@ -817,6 +977,7 @@ async function shareSystemFileNatively(){
 function renderSystemShareModal(){
   const modal = document.getElementById('systemShareModal');
   const canNativeShare = !!(navigator.share);
+  const savedLink = localStorage.getItem('fcrm_system_link') || '';
   modal.innerHTML = `
     <div class="modal-head">
       <div class="modal-head-row">
@@ -837,9 +998,9 @@ function renderSystemShareModal(){
 
       <div class="share-card">
         <h3>٢. مشاركة رابط النظام (QR)</h3>
-        <p>إذا رفعت هذا الملف على استضافة ويب (رابط عام)، الصق الرابط هنا لتوليد QR وزر مشاركة سريع.</p>
+        <p>إذا رفعت هذا الملف على استضافة ويب (رابط عام)، الصق الرابط هنا لتوليد QR وزر مشاركة سريع. الرابط يُحفظ تلقائياً على هذا الجهاز فلن تحتاج لإعادة كتابته كل مرة.</p>
         <div style="display:flex; gap:8px; margin-bottom:12px;">
-          <input type="text" id="systemLinkInput" placeholder="https://example.com/franchise-crm.html" dir="ltr" style="flex:1; padding:9px 12px; border-radius:6px; border:1.5px solid var(--border);">
+          <input type="text" id="systemLinkInput" placeholder="https://example.com/franchise-crm.html" dir="ltr" value="${esc(savedLink)}" style="flex:1; padding:9px 12px; border-radius:6px; border:1.5px solid var(--border);">
           <button class="btn btn-ghost btn-sm" id="generateSystemQrBtn">توليد QR</button>
         </div>
         <div id="systemQrResult"></div>
@@ -850,9 +1011,7 @@ function renderSystemShareModal(){
   document.getElementById('downloadSnapshotBtn').onclick = downloadSystemSnapshot;
   const nativeBtn = document.getElementById('nativeShareBtn');
   if(nativeBtn) nativeBtn.onclick = shareSystemFileNatively;
-  document.getElementById('generateSystemQrBtn').onclick = ()=>{
-    const link = document.getElementById('systemLinkInput').value.trim();
-    if(!link){ alert('يرجى إدخال الرابط أولاً'); return; }
+  const renderQrFor = (link)=>{
     document.getElementById('systemQrResult').innerHTML = `
       <div style="text-align:center; margin-top:10px;">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}" style="border:1px solid var(--border); border-radius:8px; width:200px; height:200px; margin-bottom:12px;" alt="QR">
@@ -866,6 +1025,13 @@ function renderSystemShareModal(){
       navigator.clipboard?.writeText(link).then(()=> alert('تم نسخ الرابط.')).catch(()=> alert('تعذّر النسخ التلقائي، انسخ الرابط يدوياً.'));
     };
   };
+  document.getElementById('generateSystemQrBtn').onclick = ()=>{
+    const link = document.getElementById('systemLinkInput').value.trim();
+    if(!link){ alert('يرجى إدخال الرابط أولاً'); return; }
+    localStorage.setItem('fcrm_system_link', link);
+    renderQrFor(link);
+  };
+  if(savedLink) renderQrFor(savedLink);
   document.getElementById('systemShareOverlay').classList.remove('hidden');
 }
 function closeSystemShareModal(){
@@ -886,7 +1052,8 @@ function decodeClientCode(code){
   return JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
 }
 function openShareFormModal(){
-  const link = getPublicFormLink();
+  const localLink = getPublicFormLink();
+  const savedHostedBase = localStorage.getItem('fcrm_form_hosted_base') || '';
   const modal = document.getElementById('shareFormModal');
   modal.innerHTML = `
     <div class="modal-head">
@@ -895,26 +1062,72 @@ function openShareFormModal(){
         <button class="modal-close" id="closeShareFormBtn">✕</button>
       </div>
     </div>
-    <div class="modal-body" style="text-align:center;">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(link)}" style="margin-bottom:16px; border:1px solid var(--border); border-radius:8px; width:220px; height:220px;" alt="QR Code">
-      <div style="margin-bottom:12px;">
-        <input type="text" id="shareFormLink" readonly value="${esc(link)}" style="width:100%; padding:10px; border-radius:6px; border:1.5px solid var(--border); direction:ltr; font-size:12.5px; text-align:center;">
+    <div class="modal-body">
+
+      <div class="share-card">
+        <h3>١. رابط هذا الجهاز (تلقائي وثابت)</h3>
+        <p style="color:var(--muted); font-size:11.5px; line-height:1.7;">مبني تلقائياً من الصفحة التي تفتحها الآن. إذا كنت تفتح النظام محلياً من جهازك، هذا الرابط يعمل على هذا الجهاز فقط ولن يفتح من جوال العميل.</p>
+        <div style="text-align:center;">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(localLink)}" style="margin-bottom:12px; border:1px solid var(--border); border-radius:8px; width:200px; height:200px;" alt="QR محلي">
+          <div style="margin-bottom:10px;">
+            <input type="text" id="localFormLink" readonly value="${esc(localLink)}" style="width:100%; padding:9px; border-radius:6px; border:1.5px solid var(--border); direction:ltr; font-size:12px; text-align:center;">
+          </div>
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn btn-ghost btn-sm" id="copyLocalFormLink">نسخ الرابط</button>
+            <a class="btn btn-wa btn-sm" href="https://wa.me/?text=${encodeURIComponent(localLink)}" target="_blank" rel="noopener">مشاركة عبر واتساب</a>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-primary btn-sm" id="copyShareFormLink">نسخ الرابط</button>
-      <p style="color:var(--muted); font-size:11.5px; margin-top:16px; line-height:1.7; text-align:right;">ملاحظة: لكي يعمل الرابط من جهاز العميل، يجب رفع هذا الملف على استضافة ويب يمكن الوصول إليها من أي مكان (وليس فقط فتحه محلياً على جهازك).</p>
-      <hr style="margin:18px 0; border:none; border-top:1px solid var(--border);">
-      <h3 style="font-size:13.5px; margin-bottom:8px; text-align:right;">استيراد بيانات عميل مستلمة</h3>
-      <p style="color:var(--muted); font-size:12px; margin-bottom:10px; text-align:right;">الصق الكود الذي أرسله لك العميل بعد تعبئة النموذج:</p>
-      <textarea id="importCodeInput" rows="3" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--border); font-family:monospace; font-size:11px; margin-bottom:10px;"></textarea>
-      <button class="btn btn-ghost btn-sm" id="extractCodeBtn">استخراج البيانات ومتابعة الإضافة</button>
+
+      <div class="share-card">
+        <h3>٢. رابط الاستضافة العامة (GitHub Pages)</h3>
+        <p style="color:var(--muted); font-size:11.5px; line-height:1.7;">هذا هو الرابط اللي يشتغل فعلياً من أي جوال. أدخل رابط النظام المرفوع (بدون ?public=1 في آخره)، ويُحفظ تلقائياً — أعد توليده فقط إذا تغيّر رابط GitHub لديك.</p>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input type="text" id="hostedBaseInput" placeholder="https://mo-naser.github.io/franchise-crm.html/" dir="ltr" value="${esc(savedHostedBase)}" style="flex:1; padding:9px 12px; border-radius:6px; border:1.5px solid var(--border); font-size:12px;">
+          <button class="btn btn-ghost btn-sm" id="generateHostedQrBtn">توليد / تحديث</button>
+        </div>
+        <div id="hostedQrResult" style="text-align:center;"></div>
+      </div>
+
+      <div class="share-card">
+        <h3>استيراد بيانات عميل مستلمة</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">الصق الكود الذي أرسله لك العميل بعد تعبئة النموذج:</p>
+        <textarea id="importCodeInput" rows="3" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--border); font-family:monospace; font-size:11px; margin-bottom:10px;"></textarea>
+        <button class="btn btn-ghost btn-sm" id="extractCodeBtn">استخراج البيانات ومتابعة الإضافة</button>
+      </div>
     </div>
   `;
   document.getElementById('closeShareFormBtn').onclick = closeShareFormModal;
-  document.getElementById('copyShareFormLink').onclick = ()=>{
-    const input = document.getElementById('shareFormLink');
+  document.getElementById('copyLocalFormLink').onclick = ()=>{
+    const input = document.getElementById('localFormLink');
     input.select();
     try{ document.execCommand('copy'); alert('تم نسخ الرابط.'); }catch(e){ alert('تعذّر النسخ التلقائي، انسخ الرابط يدوياً.'); }
   };
+
+  const renderHostedQr = (base)=>{
+    const fullLink = base.replace(/\/?$/, '/') + '?public=1';
+    document.getElementById('hostedQrResult').innerHTML = `
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fullLink)}" style="margin:10px 0 12px; border:1px solid var(--border); border-radius:8px; width:200px; height:200px;" alt="QR الاستضافة">
+      <div style="margin-bottom:10px;">
+        <input type="text" id="hostedFormLink" readonly value="${esc(fullLink)}" style="width:100%; padding:9px; border-radius:6px; border:1.5px solid var(--border); direction:ltr; font-size:12px; text-align:center;">
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn btn-ghost btn-sm" id="copyHostedFormLink">نسخ الرابط</button>
+        <a class="btn btn-wa btn-sm" href="https://wa.me/?text=${encodeURIComponent(fullLink)}" target="_blank" rel="noopener">مشاركة عبر واتساب</a>
+      </div>
+    `;
+    document.getElementById('copyHostedFormLink').onclick = ()=>{
+      navigator.clipboard?.writeText(fullLink).then(()=> alert('تم نسخ الرابط.')).catch(()=> alert('تعذّر النسخ التلقائي، انسخ الرابط يدوياً.'));
+    };
+  };
+  document.getElementById('generateHostedQrBtn').onclick = ()=>{
+    const base = document.getElementById('hostedBaseInput').value.trim();
+    if(!base){ alert('يرجى إدخال رابط الاستضافة أولاً'); return; }
+    localStorage.setItem('fcrm_form_hosted_base', base);
+    renderHostedQr(base);
+  };
+  if(savedHostedBase) renderHostedQr(savedHostedBase);
+
   document.getElementById('extractCodeBtn').onclick = ()=>{
     const raw = document.getElementById('importCodeInput').value.trim();
     if(!raw){ alert('يرجى لصق الكود المستلم أولاً'); return; }
@@ -931,6 +1144,99 @@ function openShareFormModal(){
 function closeShareFormModal(){
   document.getElementById('shareFormOverlay').classList.add('hidden');
 }
+function renderShareMeetingFormModal(){
+  const localLink = getPublicMeetingFormLink();
+  const savedHostedBase = localStorage.getItem('fcrm_meeting_form_hosted_base') || '';
+  const modal = document.getElementById('shareFormModal');
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>مشاركة نموذج اجتماع</h2><div class="sub">شارك الرابط أو رمز QR مع الطرف الآخر ليقترح موعداً، ثم استورد النتيجة كاجتماع عندك</div></div>
+        <button class="modal-close" id="closeShareFormBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="share-card">
+        <h3>١. رابط هذا الجهاز (تلقائي وثابت)</h3>
+        <div style="text-align:center;">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(localLink)}" style="margin-bottom:12px; border:1px solid var(--border); border-radius:8px; width:200px; height:200px;" alt="QR محلي">
+          <div style="margin-bottom:10px;">
+            <input type="text" id="localMeetingFormLink" readonly value="${esc(localLink)}" style="width:100%; padding:9px; border-radius:6px; border:1.5px solid var(--border); direction:ltr; font-size:12px; text-align:center;">
+          </div>
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn btn-ghost btn-sm" id="copyLocalMeetingFormLink">نسخ الرابط</button>
+            <a class="btn btn-wa btn-sm" href="https://wa.me/?text=${encodeURIComponent(localLink)}" target="_blank" rel="noopener">مشاركة عبر واتساب</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="share-card">
+        <h3>٢. رابط الاستضافة العامة (GitHub Pages)</h3>
+        <p style="color:var(--muted); font-size:11.5px; line-height:1.7;">أدخل رابط النظام المرفوع (بدون ?publicmeeting=1 في آخره)، ويُحفظ تلقائياً.</p>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input type="text" id="hostedMeetingBaseInput" placeholder="https://mo-naser.github.io/franchise-crm.html/" dir="ltr" value="${esc(savedHostedBase)}" style="flex:1; padding:9px 12px; border-radius:6px; border:1.5px solid var(--border); font-size:12px;">
+          <button class="btn btn-ghost btn-sm" id="generateHostedMeetingQrBtn">توليد / تحديث</button>
+        </div>
+        <div id="hostedMeetingQrResult" style="text-align:center;"></div>
+      </div>
+
+      <div class="share-card">
+        <h3>استيراد طلب اجتماع مستلم</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">الصق الكود الذي استلمته، وسيفتح لك نموذج إضافة اجتماع معبّأً بالبيانات لمراجعته وحفظه.</p>
+        <textarea id="importMeetingCodeInput" rows="3" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--border); font-family:monospace; font-size:11px; margin-bottom:10px;"></textarea>
+        <button class="btn btn-ghost btn-sm" id="extractMeetingCodeBtn">استخراج البيانات ومتابعة الإضافة</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('closeShareFormBtn').onclick = closeShareFormModal;
+  document.getElementById('copyLocalMeetingFormLink').onclick = ()=>{
+    const input = document.getElementById('localMeetingFormLink');
+    input.select();
+    try{ document.execCommand('copy'); alert('تم نسخ الرابط.'); }catch(e){ alert('تعذّر النسخ التلقائي، انسخ الرابط يدوياً.'); }
+  };
+  const renderHostedMeetingQr = (base)=>{
+    const fullLink = base.replace(/\/?$/, '/') + '?publicmeeting=1';
+    document.getElementById('hostedMeetingQrResult').innerHTML = `
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fullLink)}" style="margin:10px 0 12px; border:1px solid var(--border); border-radius:8px; width:200px; height:200px;" alt="QR الاستضافة">
+      <div style="margin-bottom:10px;">
+        <input type="text" id="hostedMeetingFormLink" readonly value="${esc(fullLink)}" style="width:100%; padding:9px; border-radius:6px; border:1.5px solid var(--border); direction:ltr; font-size:12px; text-align:center;">
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn btn-ghost btn-sm" id="copyHostedMeetingFormLink">نسخ الرابط</button>
+        <a class="btn btn-wa btn-sm" href="https://wa.me/?text=${encodeURIComponent(fullLink)}" target="_blank" rel="noopener">مشاركة عبر واتساب</a>
+      </div>
+    `;
+    document.getElementById('copyHostedMeetingFormLink').onclick = ()=>{
+      navigator.clipboard?.writeText(fullLink).then(()=> alert('تم نسخ الرابط.')).catch(()=> alert('تعذّر النسخ التلقائي، انسخ الرابط يدوياً.'));
+    };
+  };
+  document.getElementById('generateHostedMeetingQrBtn').onclick = ()=>{
+    const base = document.getElementById('hostedMeetingBaseInput').value.trim();
+    if(!base){ alert('يرجى إدخال رابط الاستضافة أولاً'); return; }
+    localStorage.setItem('fcrm_meeting_form_hosted_base', base);
+    renderHostedMeetingQr(base);
+  };
+  if(savedHostedBase) renderHostedMeetingQr(savedHostedBase);
+
+  document.getElementById('extractMeetingCodeBtn').onclick = ()=>{
+    const raw = document.getElementById('importMeetingCodeInput').value.trim();
+    if(!raw){ alert('يرجى لصق الكود المستلم أولاً'); return; }
+    try{
+      const data = decodeClientCode(raw);
+      const prefill = {
+        name: data.name || '',
+        date: data.date || '',
+        attendees: data.name ? [data.name] : [],
+        minutes: `طلب اجتماع من: ${data.name || ''}${data.phone ? ' — ' + data.phone : ''}${data.notes ? '\nملاحظات: ' + data.notes : ''}`
+      };
+      closeShareFormModal();
+      openMeetingModal(null, prefill);
+    }catch(err){
+      alert('تعذّر قراءة الكود. تأكد من نسخه ولصقه كاملاً دون نقص.');
+    }
+  };
+  document.getElementById('shareFormOverlay').classList.remove('hidden');
+}
 
 /* ============== Public client self-registration form ============== */
 function renderPublicForm(){
@@ -941,21 +1247,49 @@ function renderPublicForm(){
         <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">يرجى تعبئة بياناتك بدقة، ثم اتباع التعليمات في نهاية النموذج لإرسالها.</p>
         <form id="publicForm">
           <div class="form-grid">
-            <div class="field full"><label>اسم العميل</label><input type="text" name="name" required></div>
+            <div class="field full"><label>اسم العميل<span class="required-star">*</span></label><input type="text" name="name" required></div>
             <div class="field full"><label>نوع الجهة</label>
               <select name="entityType">${ENTITY_TYPES.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
             </div>
             <div class="field"><label>اسم الشركة / المنشأة</label><input type="text" name="companyName"></div>
             <div class="field"><label>رقم السجل التجاري</label><input type="text" name="crNumber"></div>
-            <div class="field full"><label>النشاط الحالي</label><input type="text" name="activity" required></div>
+            <div class="field full"><label>النشاط الحالي<span class="required-star">*</span></label><input type="text" name="activity" required></div>
             <div class="field full">
-              <label>رقم الجوال</label>
+              <label>رقم الجوال<span class="required-star">*</span></label>
               <div class="phone-row">
                 <select name="countryCode">${COUNTRIES.map(c=>`<option value="${c.code}">${esc(c.name)} (${c.code})</option>`).join('')}</select>
                 <input type="tel" name="phone" required dir="ltr">
               </div>
             </div>
             <div class="field full"><label>البريد الإلكتروني (اختياري)</label><input type="email" name="email" dir="ltr"></div>
+            <div class="field full">
+              <label>المنطقة المستهدفة<span class="required-star">*</span></label>
+              <select name="targetRegion" required>
+                <option value="">اختر المنطقة...</option>
+                ${TARGET_REGIONS.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field full">
+              <label>كيف سمعت عن علامتنا التجارية؟ (اختياري)</label>
+              <select name="heardAbout">
+                <option value="">بدون تحديد</option>
+                ${HEARD_ABOUT_OPTIONS.map(h=>`<option value="${esc(h)}">${esc(h)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field full">
+              <label>رأس المال المتاح للبدء (اختياري)</label>
+              <select name="capital">
+                <option value="">بدون تحديد</option>
+                ${CAPITAL_OPTIONS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field full">
+              <label>نوع التمويل (اختياري)</label>
+              <select name="funding">
+                <option value="">بدون تحديد</option>
+                ${FUNDING_OPTIONS.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join('')}
+              </select>
+            </div>
             <div class="field full">
               <label>هل سبق التعامل بنظام الفرنشايز؟</label>
               <div class="circle-row" id="pubFranchiseGroup">
@@ -968,7 +1302,7 @@ function renderPublicForm(){
               <input type="text" name="prevFranchiseBrand">
             </div>
             <div class="field full">
-              <label>العلامة التجارية المطلوبة</label>
+              <label>العلامة التجارية المطلوبة<span class="required-star">*</span></label>
               <div class="radio-group" id="pubBrandGroup">
                 ${BRANDS.map((b,i)=>`<div class="radio-chip ${i===0?'selected':''}" data-brand="${esc(b)}">${esc(b)}</div>`).join('')}
               </div>
@@ -1004,12 +1338,16 @@ function renderPublicForm(){
       countryCode: f.countryCode.value,
       phone: f.phone.value.trim(),
       email: f.email.value.trim(),
+      targetRegion: f.targetRegion.value,
+      heardAbout: f.heardAbout.value,
+      capital: f.capital.value,
+      funding: f.funding.value,
       triedFranchise,
       prevFranchiseBrand: triedFranchise ? f.prevFranchiseBrand.value.trim() : '',
       brand: pubBrand,
       notes: f.notes.value.trim()
     };
-    if(!data.name || !data.phone || !data.activity){ alert('يرجى تعبئة الاسم ورقم الجوال والنشاط على الأقل'); return; }
+    if(!data.name || !data.phone || !data.activity || !data.targetRegion){ alert('يرجى تعبئة الاسم ورقم الجوال والنشاط والمنطقة المستهدفة على الأقل'); return; }
     renderPublicResult(encodeClientCode(data));
   };
 }
@@ -1038,6 +1376,69 @@ function renderPublicResult(code){
   };
 }
 
+/* ============== Public meeting scheduling form (shared like client form) ============== */
+function getPublicMeetingFormLink(){
+  const base = (location.origin && location.origin !== 'null')
+    ? location.origin + location.pathname
+    : location.href.split('?')[0].split('#')[0];
+  return base + '?publicmeeting=1';
+}
+function renderPublicMeetingForm(){
+  document.body.innerHTML = `
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bg); font-family:'Almarai',sans-serif;">
+      <div class="form-card" style="max-width:560px; width:100%;">
+        <h1 style="font-size:20px; font-weight:900; margin-bottom:6px; font-family:'Tajawal',sans-serif;">طلب تحديد موعد اجتماع</h1>
+        <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">عبّئ بياناتك والموعد المقترح، ثم اتبع التعليمات في نهاية النموذج لإرسالها.</p>
+        <form id="publicMeetingForm">
+          <div class="form-grid">
+            <div class="field full"><label>الاسم<span class="required-star">*</span></label><input type="text" name="name" required></div>
+            <div class="field full"><label>رقم الجوال (اختياري)</label><input type="tel" name="phone" dir="ltr"></div>
+            <div class="field full"><label>الموعد المقترح للاجتماع<span class="required-star">*</span></label><input type="datetime-local" name="date" required></div>
+            <div class="field full"><label>الموضوع / ملاحظات (اختياري)</label><textarea name="notes" rows="3"></textarea></div>
+          </div>
+          <div class="form-actions"><button type="submit" class="btn btn-primary">إرسال الطلب</button></div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.getElementById('publicMeetingForm').onsubmit = (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const data = {
+      name: f.name.value.trim(),
+      phone: f.phone.value.trim(),
+      date: f.date.value,
+      notes: f.notes.value.trim()
+    };
+    if(!data.name || !data.date){ alert('يرجى تعبئة الاسم والموعد المقترح على الأقل'); return; }
+    renderPublicMeetingResult(encodeClientCode(data));
+  };
+}
+function renderPublicMeetingResult(code){
+  document.body.innerHTML = `
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bg); font-family:'Almarai',sans-serif;">
+      <div class="form-card" style="max-width:520px; width:100%; text-align:center;">
+        <h1 style="font-size:19px; font-weight:900; margin-bottom:10px; font-family:'Tajawal',sans-serif;">تم إعداد طلب الاجتماع ✓</h1>
+        <p style="color:var(--muted); font-size:13px; margin-bottom:18px; line-height:1.8;">انسخ الكود أدناه وأرسله لصاحب النظام عبر واتساب ليضيف طلبك كاجتماع مباشرة.</p>
+        <textarea id="resultMeetingCode" readonly rows="5" style="width:100%; font-family:monospace; font-size:11px; padding:10px; border-radius:8px; border:1.5px solid var(--border); margin-bottom:14px;">${code}</textarea>
+        <div class="btn-row" style="justify-content:center;">
+          <button class="btn btn-primary" id="copyMeetingCodeBtn">نسخ الكود</button>
+          <button class="btn btn-wa" id="waMeetingCodeBtn">إرسال عبر واتساب</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('copyMeetingCodeBtn').onclick = ()=>{
+    const ta = document.getElementById('resultMeetingCode');
+    ta.select();
+    try{ document.execCommand('copy'); alert('تم نسخ الكود.'); }catch(e){ alert('تعذّر النسخ التلقائي، انسخ الكود يدوياً.'); }
+  };
+  document.getElementById('waMeetingCodeBtn').onclick = ()=>{
+    const msg = 'طلب تحديد موعد اجتماع:\n' + code;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+}
+
 /* ============== Message content page (under التواصل مع العملاء) ============== */
 let editingTemplateIdx = null;
 function renderMessagesView(){
@@ -1055,7 +1456,7 @@ function renderMessagesView(){
       `;
     }
     return `
-      <div class="log-entry">
+      <div class="log-entry" style="${templateColorStyle(t.color)}">
         <div class="row1">
           <strong style="font-size:13px;">${esc(t.title)}</strong>
           <span class="btn-row">
@@ -1089,48 +1490,174 @@ function renderMessagesView(){
 
 /* ============== Sent Messages log ============== */
 function renderContactLogView(){
-  const filtered = sentMessages.filter(m=> !sentMessagesFilter.channel || m.channel === sentMessagesFilter.channel).slice().reverse();
-  const rows = filtered.map(m=>`
+  const rows = buildContactLogRows();
+
+  const tableRows = rows.map(r=>`
     <tr>
-      <td>${fmtDate(m.date)}</td>
-      <td>${esc(m.clientName)}</td>
-      <td dir="ltr" style="text-align:right;">${esc(m.clientPhone || '—')}</td>
-      <td><span class="badge ${m.channel==='واتساب' ? 'b-done' : 'b-good'}">${esc(m.channel)}</span></td>
-      <td>${esc(m.templateTitle || '—')}</td>
-      <td style="max-width:320px; white-space:normal;">${esc(m.text)}</td>
+      <td>${fmtDate(r.date)}</td>
+      <td>${esc(r.clientName)}</td>
+      <td dir="ltr" style="text-align:right;">${esc(r.clientPhone || '—')}</td>
+      <td><span class="badge ${r.kind==='رسالة' ? 'b-good' : commBadgeClass(r.detail)}">${esc(r.kind)}</span></td>
+      <td>${esc(r.detail || '—')}</td>
+      <td>${esc(r.byUser || '—')}</td>
     </tr>
   `).join('');
 
   return `
     <div class="topbar">
-      <div><h1>قائمة التواصل</h1><p>كل عميل تم إرسال رسالة له ينتقل إلى هذه القائمة — سجل كل الرسائل المرسلة من هذا الجهاز</p></div>
+      <div><h1>قائمة التواصل</h1><p>تقرير موحّد لحالات الردود والرسائل المرسلة — لمعرفة تفاصيل التواصل ورد الموظف المسؤول</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportContactLogBtn">تصدير Excel</button>
+        <button class="btn btn-ghost" id="printContactLogBtn">طباعة / PDF</button>
+        <button class="btn btn-wa" id="shareContactLogBtn">مشاركة ملف Excel عبر واتساب</button>
+        <button class="btn btn-ghost" id="shareContactLogTextBtn">مشاركة كنص عبر واتساب</button>
+      </div>
     </div>
+
     <div class="filters">
-      <select id="sentChannelFilter">
+      <div class="field" style="min-width:150px;"><label style="font-size:11px;">من تاريخ</label><input type="date" id="clFromDate" value="${esc(contactLogFilter.fromDate)}"></div>
+      <div class="field" style="min-width:150px;"><label style="font-size:11px;">إلى تاريخ</label><input type="date" id="clToDate" value="${esc(contactLogFilter.toDate)}"></div>
+      <button class="btn btn-primary btn-sm" id="clSearchBtn" style="align-self:flex-end;">بحث</button>
+    </div>
+
+    <div class="filters" style="align-items:center;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+        <input type="checkbox" id="clIncludeStatus" ${contactLogFilter.includeStatus?'checked':''}> حالات الردود
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+        <input type="checkbox" id="clIncludeMessages" ${contactLogFilter.includeMessages?'checked':''}> الرسائل المرسلة
+      </label>
+      <select id="clChannelFilter" ${!contactLogFilter.includeMessages?'disabled':''}>
         <option value="">كل القنوات</option>
-        <option value="واتساب" ${sentMessagesFilter.channel==='واتساب'?'selected':''}>واتساب</option>
-        <option value="إيميل" ${sentMessagesFilter.channel==='إيميل'?'selected':''}>البريد الإلكتروني</option>
+        <option value="واتساب" ${contactLogFilter.channel==='واتساب'?'selected':''}>واتساب</option>
+        <option value="إيميل" ${contactLogFilter.channel==='إيميل'?'selected':''}>البريد الإلكتروني</option>
       </select>
     </div>
+
+    <div class="stats-row" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-num">${rows.length}</div><div class="stat-label">إجمالي السجلات المطابقة</div></div>
+    </div>
+
     <div class="table-wrap">
-      ${filtered.length===0 ? `<div class="empty">لا توجد رسائل مرسلة بعد.</div>` : `
+      ${rows.length===0 ? `<div class="empty">لا توجد سجلات مطابقة لهذا الفلتر.</div>` : `
       <table>
-        <thead><tr><th>التاريخ</th><th>العميل</th><th>رقم الجوال</th><th>القناة</th><th>القالب</th><th>نص الرسالة</th></tr></thead>
-        <tbody>${rows}</tbody>
+        <thead><tr><th>التاريخ</th><th>العميل</th><th>رقم الجوال</th><th>النوع</th><th>التفاصيل</th><th>الموظف المسؤول</th></tr></thead>
+        <tbody>${tableRows}</tbody>
       </table>`}
     </div>
   `;
 }
+function buildContactLogRows(){
+  const { fromDate, toDate, includeStatus, includeMessages, channel } = contactLogFilter;
+  const fromD = fromDate ? new Date(fromDate) : null;
+  const toD = toDate ? new Date(toDate + 'T23:59:59') : null;
+  const inRange = (dateStr)=>{
+    const d = new Date(dateStr);
+    if(fromD && d < fromD) return false;
+    if(toD && d > toD) return false;
+    return true;
+  };
+  let rows = [];
+  if(includeStatus){
+    clients.forEach(c=>{
+      (c.communications||[]).forEach(comm=>{
+        if(!inRange(comm.date)) return;
+        rows.push({
+          date: comm.date,
+          clientName: c.name,
+          clientPhone: (c.countryCode||'')+' '+(c.phone||''),
+          kind: 'حالة رد',
+          detail: comm.status,
+          byUser: comm.byUser || ''
+        });
+      });
+    });
+  }
+  if(includeMessages){
+    sentMessages.forEach(m=>{
+      if(!inRange(m.date)) return;
+      if(channel && m.channel !== channel) return;
+      rows.push({
+        date: m.date,
+        clientName: m.clientName,
+        clientPhone: m.clientPhone || '',
+        kind: 'رسالة',
+        detail: `${m.channel}${m.templateTitle ? ' — '+m.templateTitle : ''}`,
+        byUser: m.byUser || ''
+      });
+    });
+  }
+  return rows.sort((a,b)=> new Date(b.date) - new Date(a.date));
+}
+function exportContactLogExcelFile(){
+  const rows = buildContactLogRows();
+  const excelRows = rows.map(r=>({
+    "التاريخ": fmtDate(r.date),
+    "العميل": r.clientName,
+    "رقم الجوال": r.clientPhone,
+    "النوع": r.kind,
+    "التفاصيل": r.detail,
+    "الموظف المسؤول": r.byUser
+  }));
+  const ws = XLSX.utils.json_to_sheet(excelRows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "قائمة التواصل");
+  return { wb, filename: `قائمة-التواصل-${new Date().toISOString().slice(0,10)}.xlsx` };
+}
+function printContactLogReport(){
+  const rows = buildContactLogRows();
+  const headers = ["التاريخ","العميل","رقم الجوال","النوع","التفاصيل","الموظف المسؤول"];
+  const tableRows = rows.map(r=>[fmtDate(r.date), r.clientName, r.clientPhone, r.kind, r.detail, r.byUser]);
+  printHtmlContent('قائمة التواصل', tableToHtml(headers, tableRows));
+}
+function exportContactLogExcel(){
+  const { wb, filename } = exportContactLogExcelFile();
+  XLSX.writeFile(wb, filename);
+}
+async function shareContactLogExcel(){
+  const { wb, filename } = exportContactLogExcelFile();
+  await shareWorkbookOrDownload(wb, filename, 'قائمة التواصل');
+}
+function shareContactLogText(){
+  const rows = buildContactLogRows();
+  if(rows.length === 0){ alert('لا توجد سجلات مطابقة للفلتر الحالي لمشاركتها.'); return; }
+  const MAX_ROWS = 25;
+  const lines = rows.slice(0, MAX_ROWS).map(r=>
+    `• ${fmtDate(r.date)} — ${r.clientName} — ${r.kind}${r.detail ? ' ('+r.detail+')' : ''}`
+  );
+  let text = `قائمة التواصل (${rows.length} سجل):\n\n` + lines.join('\n');
+  if(rows.length > MAX_ROWS){
+    text += `\n\n... و ${rows.length - MAX_ROWS} سجل إضافي. للتفاصيل الكاملة استخدم تصدير Excel.`;
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
 
 /* ============== إرسال رسالة (per-client send table) ============== */
 let sendMessagesFilter = { q:"", brand:"" };
-function renderSendMessagesView(){
-  const filtered = clients.filter(c=>{
+function getFilteredSendMessagesClients(){
+  return clients.filter(c=>{
     const q = sendMessagesFilter.q.trim();
     const matchesQ = !q || c.name.includes(q) || (c.phone||'').includes(q);
     const matchesBrand = !sendMessagesFilter.brand || c.brand === sendMessagesFilter.brand;
     return matchesQ && matchesBrand;
   });
+}
+function exportSendMessagesExcel(){
+  const filtered = getFilteredSendMessagesClients();
+  const rows = filtered.map(c=>({
+    "رقم الملف": c.id,
+    "الاسم": c.name,
+    "رقم الجوال": c.countryCode + " " + c.phone,
+    "البريد الإلكتروني": c.email || "",
+    "العلامة التجارية": c.brand || ""
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "إرسال رسالة");
+  XLSX.writeFile(wb, `قائمة-إرسال-رسالة-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+function renderSendMessagesView(){
+  const filtered = getFilteredSendMessagesClients();
 
   if(MESSAGE_TEMPLATES.length===0){
     return `
@@ -1139,9 +1666,13 @@ function renderSendMessagesView(){
     `;
   }
 
+  sendMessagesSelected.forEach(id=>{ if(!clients.find(c=>c.id===id)) sendMessagesSelected.delete(id); });
+  const allFilteredSelected = filtered.length > 0 && filtered.every(c => sendMessagesSelected.has(c.id));
+
   const templateOptions = MESSAGE_TEMPLATES.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('');
   const rows = filtered.map(c=>`
     <tr data-clientrow="${c.id}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="send-select-checkbox" data-sendselect="${c.id}" ${sendMessagesSelected.has(c.id)?'checked':''}></td>
       <td><span class="file-id">${c.id}</span></td>
       <td>${esc(c.name)}</td>
       <td dir="ltr" style="text-align:right;">${esc(c.countryCode)} ${esc(c.phone)}</td>
@@ -1159,7 +1690,8 @@ function renderSendMessagesView(){
 
   return `
     <div class="topbar">
-      <div><h1>إرسال رسالة</h1><p>اختر لكل عميل محتوى الرسالة وطريقة الإرسال، ثم اضغط إرسال — سينتقل العميل بعدها إلى "قائمة التواصل"</p></div>
+      <div><h1>إرسال رسالة</h1><p>اختر لكل عميل محتوى الرسالة وطريقة الإرسال وأرسل فردياً، أو حدد أكثر من عميل وأرسل لهم جماعياً</p></div>
+      <button class="btn btn-ghost" id="exportSendMessagesExcelBtn">تصدير Excel</button>
     </div>
     <div class="filters">
       <input type="text" id="sendSearchInput" placeholder="بحث بالاسم أو الجوال" value="${esc(sendMessagesFilter.q)}">
@@ -1168,10 +1700,21 @@ function renderSendMessagesView(){
         ${BRANDS.map(b=>`<option value="${esc(b)}" ${sendMessagesFilter.brand===b?'selected':''}>${esc(b)}</option>`).join('')}
       </select>
     </div>
+    <div class="filters" style="align-items:center;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+        <input type="checkbox" id="sendSelectAll" ${allFilteredSelected?'checked':''}> تحديد الكل (${sendMessagesSelected.size} محدد)
+      </label>
+      <select id="sendBulkTemplateSelect">${templateOptions}</select>
+      <select id="sendBulkChannelSelect">
+        <option value="whatsapp">واتساب</option>
+        <option value="email">البريد الإلكتروني</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="sendBulkBtn" ${sendMessagesSelected.size===0?'disabled':''}>إرسال رسالة جماعية للمحددين</button>
+    </div>
     <div class="table-wrap">
       ${filtered.length===0 ? `<div class="empty">لا يوجد عملاء مطابقون.</div>` : `
       <table>
-        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>الجوال</th><th>العلامة</th><th>المحتوى</th><th>طريقة الإرسال</th><th></th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="sendSelectAllHead" ${allFilteredSelected?'checked':''}></th><th>رقم الملف</th><th>الاسم</th><th>الجوال</th><th>العلامة</th><th>المحتوى</th><th>طريقة الإرسال</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`}
     </div>
@@ -1179,7 +1722,42 @@ function renderSendMessagesView(){
 }
 
 /* ============== Router ============== */
+function isSuperAdmin(){
+  const u = users.find(x=>x.id===currentUserId);
+  return !!(u && u.role === 'super_admin');
+}
+function hasPermission(view){
+  const u = users.find(x=>x.id===currentUserId);
+  if(!u) return false;
+  if(view === 'settings') return u.role === 'super_admin';
+  if(u.role === 'super_admin') return true;
+  return (u.permissions || []).includes(view);
+}
+function applyNavPermissions(){
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
+    btn.classList.toggle('nav-disabled', !hasPermission(btn.dataset.view));
+  });
+}
+function saveNavLabelOverrides(){ localStorage.setItem('fcrm_nav_labels', JSON.stringify(navLabelOverrides)); }
+function navLabel(viewId){
+  const def = ALL_NAV_VIEWS.find(v=>v.id===viewId);
+  return navLabelOverrides[viewId] || (def ? def.label : viewId);
+}
+function applyNavLabelOverrides(){
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
+    const viewId = btn.dataset.view;
+    const override = navLabelOverrides[viewId];
+    if(!override) return;
+    const textNode = Array.from(btn.childNodes).find(n=> n.nodeType===3 && n.textContent.trim());
+    if(textNode) textNode.textContent = ' ' + override + ' ';
+    else btn.textContent = override;
+  });
+}
 function setView(v){
+  if(!hasPermission(v)){
+    alert('ليس لديك صلاحية للوصول إلى هذه الصفحة. تواصل مع السوبر أدمن لمنحك الصلاحية.');
+    return;
+  }
   currentView = v;
   userMenuOpen = false;
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
@@ -1342,6 +1920,11 @@ document.getElementById('main').addEventListener('click', e=>{
     render();
     return;
   }
+  if(notifOpen && !e.target.closest('.global-search-wrap')){
+    notifOpen = false;
+    render();
+    return;
+  }
   if(openStatusMenuFor && !e.target.closest('.status-menu') && !e.target.closest('[data-kebab]')){
     openStatusMenuFor = null;
     render();
@@ -1363,19 +1946,66 @@ function renderGlobalSearchResults(){
 function voiceSupported(){
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
+function getUpcomingMeetings(){
+  const now = new Date();
+  const in24h = new Date(now.getTime() + 24*60*60*1000);
+  return meetings.filter(m=>{
+    if(!m.date) return false;
+    const d = new Date(m.date);
+    return d >= now && d <= in24h;
+  }).sort((a,b)=> new Date(a.date) - new Date(b.date));
+}
+function getDueTasks(){
+  const now = new Date();
+  const in24h = new Date(now.getTime() + 24*60*60*1000);
+  return tasks.filter(t=>{
+    if(t.status === 'منجزة' || !t.dueDate) return false;
+    const d = new Date(t.dueDate);
+    return d <= in24h; // includes overdue (d < now) and due within next 24h
+  }).sort((a,b)=> new Date(a.dueDate) - new Date(b.dueDate));
+}
+function renderNotificationsDropdown(){
+  const upcoming = getUpcomingMeetings();
+  const dueTasks = getDueTasks();
+  if(upcoming.length===0 && dueTasks.length===0) return `<div class="global-search-dropdown"><div class="global-search-empty">لا توجد اجتماعات أو مهام مستحقة قريباً</div></div>`;
+  const meetingItems = upcoming.map(m=>`
+    <div class="global-search-item" data-openmeeting="${m.id}">
+      <strong>📅 ${esc(m.name || m.type || 'اجتماع')}</strong>
+      <span style="color:var(--muted); font-size:11px;">${fmtDate(m.date)}</span>
+    </div>
+  `).join('');
+  const taskItems = dueTasks.map(t=>{
+    const overdue = new Date(t.dueDate) < new Date();
+    return `<div class="global-search-item" data-opentask="${t.id}">
+      <strong>${overdue ? '⚠️' : '✅'} ${esc(t.title)}</strong>
+      <span style="color:${overdue?'var(--danger)':'var(--muted)'}; font-size:11px;">${overdue?'متأخرة — ':''}${fmtDate(t.dueDate)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="global-search-dropdown">${meetingItems}${taskItems}</div>`;
+}
 function userStripHtml(){
   const u = users.find(x=>x.id===currentUserId);
   if(!u) return '';
   const avatarSmall = u.avatar ? `<img src="${u.avatar}" class="avatar">` : `<span class="avatar-placeholder">${esc(u.name.trim()[0]||'?')}</span>`;
   const avatarLarge = u.avatar ? `<img src="${u.avatar}" class="avatar-lg">` : `<span class="avatar-placeholder-lg">${esc(u.name.trim()[0]||'?')}</span>`;
+  const upcomingCount = getUpcomingMeetings().length + getDueTasks().length;
   return `
     <div class="user-menu-row">
-      <div class="global-search-wrap">
-        <input type="text" id="globalSearchInput" placeholder="🔍 بحث عن عميل بالاسم أو الجوال..." value="${esc(globalSearchQuery)}" autocomplete="off">
-        ${globalSearchOpen ? renderGlobalSearchResults() : ''}
+      <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:200px;">
+        <div class="global-search-wrap">
+          <input type="text" id="globalSearchInput" placeholder="🔍 بحث عن عميل بالاسم أو الجوال..." value="${esc(globalSearchQuery)}" autocomplete="off">
+          ${globalSearchOpen ? renderGlobalSearchResults() : ''}
+        </div>
+        ${voiceSupported() ? `<button class="voice-cmd-btn ${voiceListening?'listening':''}" id="voiceCmdBtn" title="أمر صوتي">🎤</button>` : ''}
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
-        ${voiceSupported() ? `<button class="voice-cmd-btn ${voiceListening?'listening':''}" id="voiceCmdBtn" title="أمر صوتي">🎤</button>` : ''}
+        <div class="global-search-wrap" style="max-width:none; flex:none;">
+          <button class="voice-cmd-btn" id="notifBellBtn" title="الاجتماعات والمهام القادمة" style="position:relative;">
+            🔔
+            ${upcomingCount>0 ? `<span class="notif-badge">${upcomingCount}</span>` : ''}
+          </button>
+          ${notifOpen ? renderNotificationsDropdown() : ''}
+        </div>
         <div class="user-menu ${userMenuOpen ? 'open' : ''}">
           <button class="user-menu-trigger" id="userMenuTrigger">
             ${avatarSmall}
@@ -1399,8 +2029,14 @@ function render(){
   let body = "";
   if(currentView === 'list') body = renderDashboardView();
   else if(currentView === 'clients') body = renderClientsView();
+  else if(currentView === 'contacts') body = renderContactsView();
   else if(currentView === 'brands') body = renderBrandsView();
   else if(currentView === 'brandreport') body = renderBrandReportView();
+  else if(currentView === 'meetings') body = renderMeetingsView();
+  else if(currentView === 'meetingsreport') body = renderMeetingsReportView();
+  else if(currentView === 'tasks') body = renderTasksView();
+  else if(currentView === 'tasksreport') body = renderTasksReportView();
+  else if(currentView === 'staffperformance') body = renderStaffPerformanceView();
   else if(currentView === 'comms') body = renderCommsView();
   else if(currentView === 'responsecategories') body = renderResponseCategoriesView();
   else if(currentView === 'messages') body = renderMessagesView();
@@ -1434,7 +2070,7 @@ function renderDashboardView(){
     <div class="topbar">
       <div><h1>الرئيسية</h1><p>نظرة عامة على العملاء والعلامات التجارية وحالة التواصل</p></div>
       <div class="btn-row">
-        <button class="btn btn-ghost" id="systemShareBtn">مشاركة النظام</button>
+        ${isSuperAdmin() ? `<button class="btn btn-ghost" id="systemShareBtn">مشاركة النظام</button>` : ''}
         <button class="btn btn-ghost" data-goto="share">استيراد / تصدير البيانات</button>
         <button class="btn btn-primary" id="dashAddClientBtn">+ إضافة عميل</button>
       </div>
@@ -1469,7 +2105,8 @@ function getFilteredListClients(){
     const matchesStatus = !listFilters.status || (l && l.status === listFilters.status) || (listFilters.status==='none' && !l);
     const r = latestRating(c);
     const matchesRating = !listFilters.rating || (r && r.category === listFilters.rating) || (listFilters.rating==='none' && !r);
-    return matchesQ && matchesBrand && matchesStatus && matchesRating;
+    const matchesAssigned = !listFilters.assignedTo || c.assignedTo === listFilters.assignedTo || (listFilters.assignedTo==='none' && !c.assignedTo);
+    return matchesQ && matchesBrand && matchesStatus && matchesRating && matchesAssigned;
   }).slice().reverse();
 }
 function renderClientsView(){
@@ -1478,11 +2115,13 @@ function renderClientsView(){
   const rows = filtered.map(c=>{
     const l = latestComm(c);
     const r = latestRating(c);
+    const au = users.find(x=>x.id===c.assignedTo);
     return `<tr data-id="${c.id}" class="${rowTintClass(l?l.status:null)}">
       <td><span class="file-id">${c.id}</span></td>
       <td>${esc(c.name)}<br><span style="color:var(--muted); font-size:11px;">${esc(c.entityType)}${c.addedBy? ' · أضيف بواسطة '+esc(c.addedBy):''}</span></td>
       <td>${esc(c.brand)}</td>
       <td>${esc(countryNameFromCode(c.countryCode))}<br><span dir="ltr" style="color:var(--muted); font-size:11.5px;">${esc(c.countryCode)} ${esc(c.phone)}</span></td>
+      <td>${au ? esc(au.name) : '—'}</td>
       <td>${r ? `<span class="badge ${ratingBadgeClass(r.category)}">${esc(r.category)}</span>` : '<span class="badge b-none">بدون تقييم</span>'}</td>
       <td><span class="badge ${commBadgeClass(l ? l.status : null)}">${l ? esc(l.status) : 'لا يوجد تواصل'}</span></td>
       <td style="position:relative;">
@@ -1508,6 +2147,8 @@ function renderClientsView(){
       <div class="btn-row">
         <button class="btn btn-ghost" id="shareFormBtn">مشاركة نموذج تسجيل</button>
         <button class="btn btn-ghost" id="exportClientsExcelBtn">تصدير Excel${listFilters.brand ? ' (العلامة: '+esc(listFilters.brand)+')' : ''}</button>
+        <button class="btn btn-ghost" id="printClientsBtn">طباعة / PDF</button>
+        <button class="btn btn-wa" id="shareClientsExcelBtn">مشاركة</button>
         <button class="btn btn-primary" id="openAddClientBtn">+ إضافة عميل</button>
       </div>
     </div>
@@ -1527,13 +2168,18 @@ function renderClientsView(){
         ${RATING_OPTIONS.map(r=>`<option value="${r}" ${listFilters.rating===r?'selected':''}>${r}</option>`).join('')}
         <option value="none" ${listFilters.rating==='none'?'selected':''}>بدون تقييم</option>
       </select>
+      <select id="fassigned">
+        <option value="">كل الموظفين</option>
+        ${users.map(u=>`<option value="${u.id}" ${listFilters.assignedTo===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+        <option value="none" ${listFilters.assignedTo==='none'?'selected':''}>بدون موظف مسؤول</option>
+      </select>
       ${listFilters.brand ? `<button class="btn btn-ghost btn-sm" id="clearBrand">إلغاء فلتر: ${listFilters.brand}</button>` : ''}
     </div>
 
     <div class="table-wrap">
       ${filtered.length===0 ? `<div class="empty">لا يوجد عملاء مطابقون. جرّب تعديل البحث أو أضف عميلاً جديداً.</div>` : `
       <table>
-        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>العلامة التجارية</th><th>الدولة / الجوال</th><th>التقييم</th><th>آخر تواصل</th><th>الحالة</th><th>مشاركة</th></tr></thead>
+        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>العلامة التجارية</th><th>الدولة / الجوال</th><th>الموظف المسؤول</th><th>التقييم</th><th>آخر تواصل</th><th>الحالة</th><th>مشاركة</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`}
     </div>
@@ -1634,6 +2280,1022 @@ function renderBrandReportView(){
     </div>`}
   `;
 }
+
+/* ============== Meetings (الاجتماعات) ============== */
+function renderMeetingsView(){
+  const sorted = meetings.slice().sort((a,b)=> new Date(b.date) - new Date(a.date));
+  const rows = sorted.map(m=>{
+    const linkedName = resolveMeetingLinkedName(m);
+    return `<tr data-openmeeting="${m.id}">
+      <td>${fmtDate(m.date)}</td>
+      <td>${esc(m.name || linkedName || m.type || '—')}</td>
+      <td>${esc(m.type||'—')}</td>
+      <td>${esc(m.location||'—')}</td>
+      <td>${linkedName ? esc(linkedName) : '—'}</td>
+      <td>${(m.attendees||[]).length}</td>
+      <td>${(m.attachments||[]).length}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>الاجتماعات</h1><p>سجل كل اجتماعات الفريق والعملاء، مع المرفقات ومحضر كل اجتماع</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="shareMeetingFormBtn">مشاركة نموذج اجتماع</button>
+        <button class="btn btn-primary" id="addMeetingBtn">+ إضافة اجتماع</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      ${sorted.length===0 ? `<div class="empty">لا توجد اجتماعات بعد.</div>` : `
+      <table>
+        <thead><tr><th>التاريخ</th><th>اسم الاجتماع</th><th>النوع</th><th>الموقع/الفرع</th><th>العميل المرتبط</th><th>الحضور</th><th>المرفقات</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+function meetingAttachmentPreviewHtml(att, idx){
+  const isImg = /^image\//.test(att.type||'');
+  const isVideo = /^video\//.test(att.type||'');
+  const isPdf = /pdf/.test(att.type||'');
+  return `
+    <span class="attach-chip">
+      ${isImg ? `<img src="${att.dataUrl}" style="width:22px; height:22px; border-radius:4px; object-fit:cover;">` : (isVideo ? '🎬' : (isPdf ? '📄' : '📎'))}
+      ${esc(att.name)}
+      <button type="button" data-previewattachment="${idx}" title="معاينة" style="background:none; border:none; cursor:pointer; font-size:13px; padding:0;">👁</button>
+      <a href="${att.dataUrl}" download="${esc(att.name)}" title="تنزيل" style="text-decoration:none;">⬇</a>
+      <button type="button" data-removeattachment="${idx}" title="حذف">×</button>
+    </span>
+  `;
+}
+function meetingLinksHtml(links){
+  return (links||[]).map((l, idx)=>`
+    <span class="attach-chip">
+      🔗 <a href="${esc(l.url)}" target="_blank" rel="noopener" style="text-decoration:none; color:var(--accent-dark);">${esc(l.label || l.url)}</a>
+      <button type="button" data-removelink="${idx}" title="حذف">×</button>
+    </span>
+  `).join('') || `<p style="color:var(--muted); font-size:12px;">لا توجد روابط بعد.</p>`;
+}
+function openAttachmentPreview(att){
+  const modal = document.getElementById('attachPreviewModal');
+  const isImg = /^image\//.test(att.type||'');
+  const isVideo = /^video\//.test(att.type||'');
+  const isPdf = /pdf/.test(att.type||'');
+  let contentHtml;
+  if(isImg) contentHtml = `<img src="${att.dataUrl}" style="max-width:100%; max-height:65vh; border-radius:8px;">`;
+  else if(isVideo) contentHtml = `<video src="${att.dataUrl}" controls style="max-width:100%; max-height:65vh; border-radius:8px;"></video>`;
+  else if(isPdf) contentHtml = `<iframe src="${att.dataUrl}" style="width:100%; height:65vh; border:1px solid var(--border); border-radius:8px;"></iframe>`;
+  else contentHtml = `<p style="color:var(--muted);">لا تتوفر معاينة لهذا النوع من الملفات.</p>`;
+
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>${esc(att.name)}</h2></div>
+        <button class="modal-close" id="closeAttachPreviewBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      ${contentHtml}
+      <div class="btn-row" style="justify-content:center; margin-top:14px;">
+        <a class="btn btn-primary btn-sm" href="${att.dataUrl}" download="${esc(att.name)}">تنزيل</a>
+        ${!isVideo ? `<button class="btn btn-ghost btn-sm" id="printAttachmentBtn">طباعة</button>` : ''}
+      </div>
+    </div>
+  `;
+  document.getElementById('closeAttachPreviewBtn').onclick = ()=>{
+    document.getElementById('attachPreviewOverlay').classList.add('hidden');
+  };
+  const printBtn = document.getElementById('printAttachmentBtn');
+  if(printBtn){
+    printBtn.onclick = ()=>{
+      const w = window.open('', '_blank');
+      if(!w){ alert('يرجى السماح بالنوافذ المنبثقة لهذا الموقع لتتمكن من الطباعة.'); return; }
+      const body = isImg ? `<img src="${att.dataUrl}" style="max-width:100%;">` : `<iframe src="${att.dataUrl}" style="width:100%; height:100vh; border:none;"></iframe>`;
+      w.document.write(`<html><head><title>${esc(att.name)}</title></head><body style="margin:0; text-align:center;">${body}</body></html>`);
+      w.document.close();
+      setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 600);
+    };
+  }
+  document.getElementById('attachPreviewOverlay').classList.remove('hidden');
+}
+function meetingAttendeesHtml(attendees){
+  return (attendees||[]).map((name, idx)=>`
+    <span class="attendee-chip">${esc(name)} <button type="button" data-removeattendee="${idx}">×</button></span>
+  `).join('') || `<p style="color:var(--muted); font-size:12px;">لا يوجد حضور مضاف بعد.</p>`;
+}
+let pendingMeetingPrefill = null;
+function openMeetingModal(id, prefill){
+  editingMeetingId = id || null;
+  pendingMeetingPrefill = prefill || null;
+  renderMeetingModal();
+  document.getElementById('meetingOverlay').classList.remove('hidden');
+}
+function closeMeetingModal(){
+  document.getElementById('meetingOverlay').classList.add('hidden');
+  editingMeetingId = null;
+  pendingMeetingPrefill = null;
+}
+function renderMeetingModal(){
+  const modal = document.getElementById('meetingModal');
+  const m = editingMeetingId ? meetings.find(x=>x.id===editingMeetingId) : null;
+  const isNew = !m;
+  const defaults = { type:MEETING_TYPES[0]||'', location:MEETING_LOCATIONS[0]||'', clientId:'', contactId:'', name:'', date:'', attendees:[], attachments:[], links:[], minutes:'' };
+  const data = m || Object.assign({}, defaults, pendingMeetingPrefill || {});
+
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>${isNew ? 'إضافة اجتماع جديد' : 'تفاصيل الاجتماع'}</h2><div class="sub">${isNew ? 'عبّئ بيانات الاجتماع' : 'يمكنك تعديل أي حقل ثم الحفظ'}</div></div>
+        <button class="modal-close" id="closeMeetingModalBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <form id="meetingForm">
+        <div class="form-grid">
+          <div class="field">
+            <label>نوع الاجتماع</label>
+            <div style="display:flex; gap:6px;">
+              <select name="type" id="meetingTypeSelect" style="flex:1;">${MEETING_TYPES.map(t=>`<option value="${esc(t)}" ${data.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
+              <button type="button" class="btn btn-ghost btn-sm" id="addMeetingTypeBtn" title="إضافة نوع جديد" style="padding:0 12px;">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>الموقع / الفرع</label>
+            <div style="display:flex; gap:6px;">
+              <select name="location" id="meetingLocationSelect" style="flex:1;">${MEETING_LOCATIONS.map(l=>`<option value="${esc(l)}" ${data.location===l?'selected':''}>${esc(l)}</option>`).join('')}</select>
+              <button type="button" class="btn btn-ghost btn-sm" id="addMeetingLocationBtn" title="إضافة موقع جديد" style="padding:0 12px;">+</button>
+            </div>
+          </div>
+          <div class="field full">
+            <label>ربط بعميل أو جهة اتصال (اختياري — يسمّي الاجتماع تلقائياً)</label>
+            <select name="linkedRef" id="meetingClientSelect">
+              <option value="">بدون ربط</option>
+              <optgroup label="العملاء">
+                ${clients.map(c=>`<option value="c_${c.id}" ${data.clientId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+              </optgroup>
+              <optgroup label="جهات الاتصال">
+                ${contacts.map(k=>`<option value="k_${k.id}" ${data.contactId===k.id?'selected':''}>${esc(k.name)}</option>`).join('')}
+              </optgroup>
+            </select>
+          </div>
+          <div class="field full">
+            <label>اسم الاجتماع</label>
+            <input type="text" name="name" id="meetingNameInput" placeholder="مثال: متابعة فرنشايز مع العميل" value="${esc(data.name||'')}">
+          </div>
+          <div class="field full">
+            <label>تاريخ ووقت الاجتماع</label>
+            <input type="datetime-local" name="date" required value="${data.date ? new Date(data.date).toISOString().slice(0,16) : ''}">
+          </div>
+        </div>
+
+        <div class="field full" style="margin-top:14px;">
+          <label>الحضور</label>
+          <div id="attendeesList">${meetingAttendeesHtml(data.attendees)}</div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" id="newAttendeeInput" placeholder="اسم الحاضر" style="flex:1; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);">
+            <button type="button" class="btn btn-ghost btn-sm" id="addAttendeeBtn">إضافة</button>
+          </div>
+        </div>
+
+        <div class="field full" style="margin-top:14px;">
+          <label>المرفقات (صور / فيديو / PDF)</label>
+          <div id="attachmentsList">${(data.attachments||[]).map((a,i)=>meetingAttachmentPreviewHtml(a,i)).join('') || `<p style="color:var(--muted); font-size:12px;">لا توجد مرفقات بعد.</p>`}</div>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer; margin-top:8px; display:inline-block;">
+            إرفاق ملف
+            <input type="file" id="meetingFileInput" accept="image/*,video/*,application/pdf" multiple style="display:none;">
+          </label>
+        </div>
+
+        <div class="field full" style="margin-top:14px;">
+          <label>روابط (مثال: رابط اجتماع أونلاين أو مرجع خارجي)</label>
+          <div id="linksList">${meetingLinksHtml(data.links)}</div>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+            <input type="text" id="newLinkLabel" placeholder="عنوان الرابط (اختياري)" style="flex:1; min-width:140px; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);">
+            <input type="url" id="newLinkUrl" placeholder="https://..." dir="ltr" style="flex:1; min-width:160px; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);">
+            <button type="button" class="btn btn-ghost btn-sm" id="addLinkBtn">إضافة</button>
+          </div>
+        </div>
+
+        <div class="field full" style="margin-top:14px;">
+          <label>محضر الاجتماع</label>
+          <textarea name="minutes" rows="5" placeholder="اكتب محضر الاجتماع هنا...">${esc(data.minutes||'')}</textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">${isNew ? 'حفظ الاجتماع' : 'حفظ التعديلات'}</button>
+          ${!isNew ? `<button type="button" class="btn btn-ghost" style="color:var(--danger);" id="deleteMeetingBtn">حذف الاجتماع</button>` : ''}
+          <button type="button" class="btn btn-ghost" id="cancelMeetingBtn">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  // local working copies so edits before save don't mutate data prematurely
+  let workingAttendees = (data.attendees||[]).slice();
+  let workingAttachments = (data.attachments||[]).slice();
+  let workingLinks = (data.links||[]).slice();
+
+  document.getElementById('closeMeetingModalBtn').onclick = closeMeetingModal;
+  document.getElementById('cancelMeetingBtn').onclick = closeMeetingModal;
+
+  document.getElementById('meetingClientSelect').onchange = (e)=>{
+    const val = e.target.value;
+    if(val.startsWith('c_')){
+      const c = clients.find(x=>x.id===val.slice(2));
+      if(c) document.getElementById('meetingNameInput').value = c.name;
+    }else if(val.startsWith('k_')){
+      const k = contacts.find(x=>x.id===val.slice(2));
+      if(k) document.getElementById('meetingNameInput').value = k.name;
+    }
+  };
+
+  document.getElementById('addMeetingTypeBtn').onclick = ()=>{
+    const val = prompt('أدخل نوع الاجتماع الجديد:');
+    if(!val || !val.trim()) return;
+    const v = val.trim();
+    if(!MEETING_TYPES.includes(v)){ MEETING_TYPES.push(v); saveLists(); }
+    const sel = document.getElementById('meetingTypeSelect');
+    if(!Array.from(sel.options).some(o=>o.value===v)){
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+    sel.value = v;
+  };
+  document.getElementById('addMeetingLocationBtn').onclick = ()=>{
+    const val = prompt('أدخل الموقع / الفرع الجديد:');
+    if(!val || !val.trim()) return;
+    const v = val.trim();
+    if(!MEETING_LOCATIONS.includes(v)){ MEETING_LOCATIONS.push(v); saveLists(); }
+    const sel = document.getElementById('meetingLocationSelect');
+    if(!Array.from(sel.options).some(o=>o.value===v)){
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+    sel.value = v;
+  };
+
+  document.getElementById('addAttendeeBtn').onclick = ()=>{
+    const input = document.getElementById('newAttendeeInput');
+    const val = input.value.trim();
+    if(!val) return;
+    workingAttendees.push(val);
+    document.getElementById('attendeesList').innerHTML = meetingAttendeesHtml(workingAttendees);
+    input.value = '';
+    wireAttendeeRemovals();
+  };
+  function wireAttendeeRemovals(){
+    document.querySelectorAll('[data-removeattendee]').forEach(btn=>{
+      btn.onclick = ()=>{
+        workingAttendees.splice(parseInt(btn.dataset.removeattendee,10), 1);
+        document.getElementById('attendeesList').innerHTML = meetingAttendeesHtml(workingAttendees);
+        wireAttendeeRemovals();
+      };
+    });
+  }
+  wireAttendeeRemovals();
+
+  function refreshAttachmentsList(){
+    document.getElementById('attachmentsList').innerHTML = workingAttachments.map((a,i)=>meetingAttachmentPreviewHtml(a,i)).join('') || `<p style="color:var(--muted); font-size:12px;">لا توجد مرفقات بعد.</p>`;
+    wireAttachmentRemovals();
+    wireAttachmentPreviews();
+  }
+  document.getElementById('meetingFileInput').onchange = (e)=>{
+    const files = Array.from(e.target.files || []);
+    if(files.length === 0) return;
+    let remaining = files.length;
+    files.forEach(file=>{
+      readFileAsDataURL(file, (dataUrl)=>{
+        workingAttachments.push({ name:file.name, type:file.type, dataUrl });
+        remaining--;
+        if(remaining === 0) refreshAttachmentsList();
+      });
+    });
+  };
+  function wireAttachmentRemovals(){
+    document.querySelectorAll('[data-removeattachment]').forEach(btn=>{
+      btn.onclick = ()=>{
+        workingAttachments.splice(parseInt(btn.dataset.removeattachment,10), 1);
+        refreshAttachmentsList();
+      };
+    });
+  }
+  function wireAttachmentPreviews(){
+    document.querySelectorAll('[data-previewattachment]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const att = workingAttachments[parseInt(btn.dataset.previewattachment,10)];
+        if(att) openAttachmentPreview(att);
+      };
+    });
+  }
+  wireAttachmentRemovals();
+  wireAttachmentPreviews();
+
+  document.getElementById('addLinkBtn').onclick = ()=>{
+    const labelInput = document.getElementById('newLinkLabel');
+    const urlInput = document.getElementById('newLinkUrl');
+    const url = urlInput.value.trim();
+    if(!url){ alert('يرجى إدخال رابط'); return; }
+    workingLinks.push({ label: labelInput.value.trim(), url });
+    document.getElementById('linksList').innerHTML = meetingLinksHtml(workingLinks);
+    labelInput.value = ''; urlInput.value = '';
+    wireLinkRemovals();
+  };
+  function wireLinkRemovals(){
+    document.querySelectorAll('[data-removelink]').forEach(btn=>{
+      btn.onclick = ()=>{
+        workingLinks.splice(parseInt(btn.dataset.removelink,10), 1);
+        document.getElementById('linksList').innerHTML = meetingLinksHtml(workingLinks);
+        wireLinkRemovals();
+      };
+    });
+  }
+  wireLinkRemovals();
+
+  const deleteBtn = document.getElementById('deleteMeetingBtn');
+  if(deleteBtn){
+    deleteBtn.onclick = ()=>{
+      if(!confirm('هل تريد حذف هذا الاجتماع نهائياً؟')) return;
+      meetings = meetings.filter(x=>x.id!==editingMeetingId);
+      saveMeetings();
+      closeMeetingModal();
+      render();
+    };
+  }
+
+  document.getElementById('meetingForm').onsubmit = (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const linkedVal = f.linkedRef.value;
+    const meetingData = {
+      type: f.type.value,
+      location: f.location.value,
+      clientId: linkedVal.startsWith('c_') ? linkedVal.slice(2) : '',
+      contactId: linkedVal.startsWith('k_') ? linkedVal.slice(2) : '',
+      name: f.name.value.trim(),
+      date: f.date.value ? new Date(f.date.value).toISOString() : '',
+      attendees: workingAttendees,
+      attachments: workingAttachments,
+      links: workingLinks,
+      minutes: f.minutes.value.trim()
+    };
+    if(!meetingData.date){ alert('يرجى تحديد تاريخ ووقت الاجتماع'); return; }
+    if(isNew){
+      meetings.push({
+        id: 'mt'+Date.now(),
+        ...meetingData,
+        createdBy: currentUserName() || '',
+        createdAt: new Date().toISOString()
+      });
+    }else{
+      Object.assign(m, meetingData);
+    }
+    saveMeetings();
+    closeMeetingModal();
+    render();
+  };
+}
+
+/* ============== Meetings Report (تقرير الاجتماعات) ============== */
+function resolveMeetingLinkedName(m){
+  if(m.clientId){ const c = clients.find(x=>x.id===m.clientId); return c ? c.name : null; }
+  if(m.contactId){ const k = contacts.find(x=>x.id===m.contactId); return k ? k.name : null; }
+  return null;
+}
+function getFilteredMeetings(){
+  const { fromDate, toDate, type, location } = meetingsFilter;
+  return meetings.filter(m=>{
+    if(!m.date) return false;
+    const d = new Date(m.date);
+    if(fromDate && d < new Date(fromDate)) return false;
+    if(toDate && d > new Date(toDate + 'T23:59:59')) return false;
+    if(type && m.type !== type) return false;
+    if(location && m.location !== location) return false;
+    return true;
+  }).sort((a,b)=> new Date(a.date) - new Date(b.date));
+}
+function renderMeetingsReportView(){
+  const { fromDate, toDate, type, location } = meetingsFilter;
+  const filtered = getFilteredMeetings();
+
+  const rows = filtered.map(m=>{
+    const linkedName = resolveMeetingLinkedName(m);
+    return `<tr data-openmeeting="${m.id}">
+      <td>${fmtDate(m.date)}</td>
+      <td>${esc(m.name || linkedName || m.type || '—')}</td>
+      <td>${esc(m.type||'—')}</td>
+      <td>${esc(m.location||'—')}</td>
+      <td>${linkedName ? esc(linkedName) : '—'}</td>
+      <td>${(m.attendees||[]).length}</td>
+      <td>${esc(m.createdBy||'—')}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>تقرير الاجتماعات</h1><p>كل الاجتماعات التي أُقيمت خلال فترة محددة، مع إمكانية التصفية حسب النوع والموقع</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportMeetingsExcelBtn">تصدير Excel</button>
+        <button class="btn btn-ghost" id="printMeetingsReportBtn">طباعة / PDF</button>
+        <button class="btn btn-wa" id="shareMeetingsReportExcelBtn">مشاركة</button>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="field" style="min-width:150px;"><label style="font-size:11px;">من تاريخ</label><input type="date" id="meetingsFromDate" value="${esc(fromDate)}"></div>
+      <div class="field" style="min-width:150px;"><label style="font-size:11px;">إلى تاريخ</label><input type="date" id="meetingsToDate" value="${esc(toDate)}"></div>
+      <select id="meetingsTypeFilter">
+        <option value="">كل أنواع الاجتماعات</option>
+        ${MEETING_TYPES.map(t=>`<option value="${esc(t)}" ${type===t?'selected':''}>${esc(t)}</option>`).join('')}
+      </select>
+      <select id="meetingsLocationFilter">
+        <option value="">كل المواقع/الفروع</option>
+        ${MEETING_LOCATIONS.map(l=>`<option value="${esc(l)}" ${location===l?'selected':''}>${esc(l)}</option>`).join('')}
+      </select>
+      <button class="btn btn-primary btn-sm" id="meetingsReportSearchBtn" style="align-self:flex-end;">بحث</button>
+    </div>
+    <div class="stats-row" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-num">${filtered.length}</div><div class="stat-label">عدد الاجتماعات المطابقة</div></div>
+    </div>
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا توجد اجتماعات مطابقة لهذا الفلتر.</div>` : `
+      <table>
+        <thead><tr><th>التاريخ</th><th>اسم الاجتماع</th><th>النوع</th><th>الموقع</th><th>العميل</th><th>الحضور</th><th>أنشأه</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+function meetingsReportToRows(){
+  return getFilteredMeetings().map(m=>{
+    const linkedName = resolveMeetingLinkedName(m);
+    return {
+      "التاريخ": fmtDate(m.date),
+      "اسم الاجتماع": m.name || linkedName || m.type || '',
+      "النوع": m.type || '',
+      "الموقع": m.location || '',
+      "العميل / جهة الاتصال": linkedName || '',
+      "عدد الحضور": (m.attendees||[]).length,
+      "الحضور": (m.attendees||[]).join('، '),
+      "عدد المرفقات": (m.attachments||[]).length,
+      "محضر الاجتماع": m.minutes || '',
+      "أنشأه": m.createdBy || ''
+    };
+  });
+}
+function exportMeetingsExcel(){
+  const rows = meetingsReportToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "الاجتماعات");
+  XLSX.writeFile(wb, `تقرير-الاجتماعات-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function shareMeetingsReportExcel(){
+  const rows = meetingsReportToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "الاجتماعات");
+  await shareWorkbookOrDownload(wb, `تقرير-الاجتماعات-${new Date().toISOString().slice(0,10)}.xlsx`, 'تقرير الاجتماعات');
+}
+function printMeetingsReportPage(){
+  const rows = meetingsReportToRows();
+  const headers = ["التاريخ","اسم الاجتماع","النوع","الموقع","العميل / جهة الاتصال","عدد الحضور","عدد المرفقات","أنشأه"];
+  const tableRows = rows.map(r=>headers.map(h=>r[h]));
+  printHtmlContent('تقرير الاجتماعات', tableToHtml(headers, tableRows));
+}
+
+/* ============== المهام (Tasks) ============== */
+function isTaskOverdue(t){
+  return t.status !== 'منجزة' && t.dueDate && new Date(t.dueDate) < new Date();
+}
+function taskStatusBadge(t){
+  if(t.status === 'منجزة') return `<span class="badge b-done">منجزة</span>`;
+  if(isTaskOverdue(t)) return `<span class="badge b-nope">متأخرة</span>`;
+  return `<span class="badge b-pending">قيد التنفيذ</span>`;
+}
+function taskRowTint(t){
+  if(t.status === 'منجزة') return 'row-tint-done';
+  if(isTaskOverdue(t)) return 'row-tint-nope';
+  return '';
+}
+function getFilteredTasksForList(){
+  return tasks.filter(t=>{
+    const matchesStatus = !tasksFilter.status || (tasksFilter.status==='متأخرة' ? isTaskOverdue(t) : t.status===tasksFilter.status);
+    const matchesAssigned = !tasksFilter.assignedTo || t.assignedTo === tasksFilter.assignedTo;
+    return matchesStatus && matchesAssigned;
+  }).sort((a,b)=> new Date(a.dueDate||0) - new Date(b.dueDate||0));
+}
+function tasksToExcelRows(list){
+  return list.map(t=>{
+    const linkedClientNames = (t.clientIds||[]).map(id=>{ const c = clients.find(x=>x.id===id); return c?c.name:null; }).filter(Boolean).join('، ');
+    const au = users.find(u=>u.id===t.assignedTo);
+    return {
+      "العنوان": t.title, "العميل": linkedClientNames, "الموظف المسؤول": au?au.name:'',
+      "تاريخ الاستحقاق": t.dueDate?fmtDate(t.dueDate):'', "الحالة": t.status==='منجزة'?'منجزة':(isTaskOverdue(t)?'متأخرة':'قيد التنفيذ')
+    };
+  });
+}
+function exportTasksListExcel(){
+  const rows = tasksToExcelRows(getFilteredTasksForList());
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "المهام");
+  XLSX.writeFile(wb, `المهام-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function shareTasksListExcel(){
+  const rows = tasksToExcelRows(getFilteredTasksForList());
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "المهام");
+  await shareWorkbookOrDownload(wb, `المهام-${new Date().toISOString().slice(0,10)}.xlsx`, 'المهام');
+}
+function printTasksReport(){
+  const rows = tasksToExcelRows(getFilteredTasksForList());
+  const headers = ["العنوان","العميل","الموظف المسؤول","تاريخ الاستحقاق","الحالة"];
+  const tableRows = rows.map(r=>headers.map(h=>r[h]));
+  printHtmlContent('المهام', tableToHtml(headers, tableRows));
+}
+function renderTasksView(){
+  const filtered = getFilteredTasksForList();
+
+  const rows = filtered.map(t=>{
+    const linkedClientNames = (t.clientIds||[]).map(id=>{ const c = clients.find(x=>x.id===id); return c?c.name:null; }).filter(Boolean).join('، ');
+    const au = users.find(u=>u.id===t.assignedTo);
+    return `<tr data-opentask="${t.id}" class="${taskRowTint(t)}">
+      <td>${esc(t.title)}</td>
+      <td>${linkedClientNames ? esc(linkedClientNames) : '—'}</td>
+      <td>${au ? esc(au.name) : '—'}</td>
+      <td>${t.dueDate ? fmtDate(t.dueDate) : '—'}</td>
+      <td>${taskStatusBadge(t)}</td>
+      <td onclick="event.stopPropagation()">
+        ${t.status!=='منجزة' ? `<button class="btn btn-ghost btn-sm" data-completetask="${t.id}">تمّت ✓</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>المهام</h1><p>مهام موكلة للموظفين — مرتبطة بعميل أو مستقلة</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportTasksListExcelBtn">تصدير Excel</button>
+        <button class="btn btn-ghost" id="printTasksBtn">طباعة / PDF</button>
+        <button class="btn btn-wa" id="shareTasksExcelBtn">مشاركة</button>
+        <button class="btn btn-primary" id="addTaskBtn">+ إضافة مهمة</button>
+      </div>
+    </div>
+    <div class="filters">
+      <select id="taskStatusFilter">
+        <option value="">كل الحالات</option>
+        <option value="قيد التنفيذ" ${tasksFilter.status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option>
+        <option value="منجزة" ${tasksFilter.status==='منجزة'?'selected':''}>منجزة</option>
+        <option value="متأخرة" ${tasksFilter.status==='متأخرة'?'selected':''}>متأخرة</option>
+      </select>
+      <select id="taskAssignedFilter">
+        <option value="">كل الموظفين</option>
+        ${users.map(u=>`<option value="${u.id}" ${tasksFilter.assignedTo===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا توجد مهام مطابقة.</div>` : `
+      <table>
+        <thead><tr><th>العنوان</th><th>العميل المرتبط</th><th>الموظف المسؤول</th><th>تاريخ الاستحقاق</th><th>الحالة</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+let pendingTaskPrefill = null;
+function openTaskModal(id, prefill){
+  editingTaskId = id || null;
+  pendingTaskPrefill = prefill || null;
+  renderTaskModal();
+  document.getElementById('taskOverlay').classList.remove('hidden');
+}
+function closeTaskModal(){
+  document.getElementById('taskOverlay').classList.add('hidden');
+  editingTaskId = null;
+  pendingTaskPrefill = null;
+}
+function renderTaskModal(){
+  const modal = document.getElementById('taskModal');
+  const t = editingTaskId ? tasks.find(x=>x.id===editingTaskId) : null;
+  const isNew = !t;
+  const defaults = { title:'', description:'', clientIds:[], assignedTo:currentUserId||'', dueDate:'', status:'قيد التنفيذ' };
+  const data = t || Object.assign({}, defaults, pendingTaskPrefill || {});
+
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>${isNew ? 'إضافة مهمة جديدة' : 'تفاصيل المهمة'}</h2></div>
+        <button class="modal-close" id="closeTaskModalBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <form id="taskForm">
+        <div class="form-grid">
+          <div class="field full">
+            <label>عنوان المهمة<span class="required-star">*</span></label>
+            <input type="text" name="title" required value="${esc(data.title)}" placeholder="مثال: تواصل مع العميل بخصوص الموافقة">
+          </div>
+          <div class="field full">
+            <label>الوصف (اختياري)</label>
+            <textarea name="description" rows="3">${esc(data.description||'')}</textarea>
+          </div>
+          <div class="field full">
+            <label>ربط بعميل أو أكثر (اختياري)</label>
+            <select name="clientIds" multiple size="5" style="min-height:100px;">
+              ${clients.map(c=>`<option value="${c.id}" ${(data.clientIds||[]).includes(c.id)?'selected':''}>${esc(c.name)}</option>`).join('')}
+            </select>
+            <span style="color:var(--muted); font-size:11px;">اضغط مع الاستمرار على Ctrl (أو Cmd في الماك) لاختيار أكثر من عميل</span>
+          </div>
+          <div class="field">
+            <label>الموظف المسؤول<span class="required-star">*</span></label>
+            <select name="assignedTo" required>
+              <option value="">اختر موظفاً...</option>
+              ${users.map(u=>`<option value="${u.id}" ${data.assignedTo===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>تاريخ الاستحقاق<span class="required-star">*</span></label>
+            <input type="date" name="dueDate" required value="${data.dueDate ? data.dueDate.slice(0,10) : ''}">
+          </div>
+          <div class="field full">
+            <label>الحالة</label>
+            <select name="status">
+              ${TASK_STATUSES.map(s=>`<option value="${s}" ${data.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">${isNew ? 'حفظ المهمة' : 'حفظ التعديلات'}</button>
+          ${!isNew ? `<button type="button" class="btn btn-ghost" style="color:var(--danger);" id="deleteTaskBtn">حذف المهمة</button>` : ''}
+          <button type="button" class="btn btn-ghost" id="cancelTaskBtn">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.getElementById('closeTaskModalBtn').onclick = closeTaskModal;
+  document.getElementById('cancelTaskBtn').onclick = closeTaskModal;
+  const deleteBtn = document.getElementById('deleteTaskBtn');
+  if(deleteBtn){
+    deleteBtn.onclick = ()=>{
+      if(!confirm('هل تريد حذف هذه المهمة نهائياً؟')) return;
+      tasks = tasks.filter(x=>x.id!==editingTaskId);
+      saveTasks();
+      closeTaskModal();
+      render();
+    };
+  }
+  document.getElementById('taskForm').onsubmit = (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const taskData = {
+      title: f.title.value.trim(),
+      description: f.description.value.trim(),
+      clientIds: Array.from(f.clientIds.selectedOptions).map(o=>o.value),
+      assignedTo: f.assignedTo.value,
+      dueDate: f.dueDate.value ? new Date(f.dueDate.value).toISOString() : '',
+      status: f.status.value
+    };
+    if(!taskData.assignedTo || !taskData.dueDate){ alert('يرجى تحديد الموظف المسؤول وتاريخ الاستحقاق'); return; }
+    if(isNew){
+      tasks.push({ id:'tk'+Date.now(), ...taskData, createdBy: currentUserName()||'', createdAt: new Date().toISOString() });
+    }else{
+      Object.assign(t, taskData);
+    }
+    saveTasks();
+    closeTaskModal();
+    render();
+  };
+}
+
+/* ============== تقرير المهام ============== */
+function getFilteredTasksForReport(){
+  const { fromDate, toDate, assignedTo, status } = tasksReportFilter;
+  return tasks.filter(t=>{
+    if(!t.dueDate) return false;
+    const d = new Date(t.dueDate);
+    if(fromDate && d < new Date(fromDate)) return false;
+    if(toDate && d > new Date(toDate + 'T23:59:59')) return false;
+    if(assignedTo && t.assignedTo !== assignedTo) return false;
+    if(status && (status==='متأخرة' ? !isTaskOverdue(t) : t.status !== status)) return false;
+    return true;
+  }).sort((a,b)=> new Date(a.dueDate) - new Date(b.dueDate));
+}
+function renderTasksReportView(){
+  const { fromDate, toDate, assignedTo, status } = tasksReportFilter;
+  const filtered = getFilteredTasksForReport();
+  const doneCount = filtered.filter(t=>t.status==='منجزة').length;
+
+  const rows = filtered.map(t=>{
+    const linkedClientNames = (t.clientIds||[]).map(id=>{ const c = clients.find(x=>x.id===id); return c?c.name:null; }).filter(Boolean).join('، ');
+    const au = users.find(u=>u.id===t.assignedTo);
+    return `<tr data-opentask="${t.id}" class="${taskRowTint(t)}">
+      <td>${esc(t.title)}</td>
+      <td>${linkedClientNames ? esc(linkedClientNames) : '—'}</td>
+      <td>${au ? esc(au.name) : '—'}</td>
+      <td>${fmtDate(t.dueDate)}</td>
+      <td>${taskStatusBadge(t)}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>تقرير المهام</h1><p>كل المهام حسب تاريخ الاستحقاق، مع نسبة الإنجاز</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportTasksExcelBtn">تصدير Excel</button>
+        <button class="btn btn-ghost" id="printTasksReportBtn">طباعة / PDF</button>
+        <button class="btn btn-wa" id="shareTasksReportExcelBtn">مشاركة</button>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="field" style="min-width:150px;"><label style="font-size:11px;">من تاريخ</label><input type="date" id="tasksFromDate" value="${esc(fromDate)}"></div>
+      <div class="field" style="min-width:150px;"><label style="font-size:11px;">إلى تاريخ</label><input type="date" id="tasksToDate" value="${esc(toDate)}"></div>
+      <select id="tasksReportAssignedFilter">
+        <option value="">كل الموظفين</option>
+        ${users.map(u=>`<option value="${u.id}" ${assignedTo===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+      </select>
+      <select id="tasksReportStatusFilter">
+        <option value="">كل الحالات</option>
+        <option value="قيد التنفيذ" ${status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option>
+        <option value="منجزة" ${status==='منجزة'?'selected':''}>منجزة</option>
+        <option value="متأخرة" ${status==='متأخرة'?'selected':''}>متأخرة</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="tasksReportSearchBtn">بحث</button>
+    </div>
+    <div class="stats-row" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-num">${filtered.length}</div><div class="stat-label">إجمالي المهام</div></div>
+      <div class="stat-card"><div class="stat-num">${doneCount}</div><div class="stat-label">منجزة</div></div>
+      <div class="stat-card"><div class="stat-num">${filtered.length ? Math.round(doneCount/filtered.length*100) : 0}%</div><div class="stat-label">نسبة الإنجاز</div></div>
+    </div>
+    <div class="table-wrap">
+      ${filtered.length===0 ? `<div class="empty">لا توجد مهام مطابقة.</div>` : `
+      <table>
+        <thead><tr><th>العنوان</th><th>العميل</th><th>الموظف المسؤول</th><th>تاريخ الاستحقاق</th><th>الحالة</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+function tasksReportToRows(){
+  return getFilteredTasksForReport().map(t=>{
+    const linkedClientNames = (t.clientIds||[]).map(id=>{ const c = clients.find(x=>x.id===id); return c?c.name:null; }).filter(Boolean).join('، ');
+    const au = users.find(u=>u.id===t.assignedTo);
+    return {
+      "العنوان": t.title,
+      "الوصف": t.description || '',
+      "العميل": linkedClientNames,
+      "الموظف المسؤول": au ? au.name : '',
+      "تاريخ الاستحقاق": fmtDate(t.dueDate),
+      "الحالة": t.status === 'منجزة' ? 'منجزة' : (isTaskOverdue(t) ? 'متأخرة' : 'قيد التنفيذ'),
+      "أنشأها": t.createdBy || ''
+    };
+  });
+}
+function exportTasksExcel(){
+  const rows = tasksReportToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "المهام");
+  XLSX.writeFile(wb, `تقرير-المهام-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function shareTasksReportExcel(){
+  const rows = tasksReportToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "المهام");
+  await shareWorkbookOrDownload(wb, `تقرير-المهام-${new Date().toISOString().slice(0,10)}.xlsx`, 'تقرير المهام');
+}
+function printTasksReportPage(){
+  const rows = tasksReportToRows();
+  const headers = ["العنوان","الوصف","العميل","الموظف المسؤول","تاريخ الاستحقاق","الحالة","أنشأها"];
+  const tableRows = rows.map(r=>headers.map(h=>r[h]));
+  printHtmlContent('تقرير المهام', tableToHtml(headers, tableRows));
+}
+
+/* ============== أداء الموظفين ============== */
+function renderStaffPerformanceView(){
+  const rows = users.map(u=>{
+    const myClients = clients.filter(c=>c.assignedTo===u.id);
+    const confirmedClients = myClients.filter(c=>{ const l = latestComm(c); return l && commBadgeClass(l.status)==='b-done'; }).length;
+    const statusUpdates = clients.reduce((sum,c)=> sum + (c.communications||[]).filter(m=>m.byUser===u.name).length, 0);
+    const messagesSent = sentMessages.filter(m=>m.byUser===u.name).length;
+    const meetingsHeld = meetings.filter(m=>m.createdBy===u.name).length;
+    const myTasks = tasks.filter(t=>t.assignedTo===u.id);
+    const doneTasks = myTasks.filter(t=>t.status==='منجزة').length;
+    return `<tr>
+      <td>${esc(u.name)}${u.role==='super_admin' ? ' <span class="badge b-done">سوبر أدمن</span>' : ''}</td>
+      <td>${myClients.length}</td>
+      <td>${confirmedClients}</td>
+      <td>${statusUpdates}</td>
+      <td>${messagesSent}</td>
+      <td>${meetingsHeld}</td>
+      <td>${doneTasks} / ${myTasks.length}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>أداء الموظفين</h1><p>نظرة تلقائية على نشاط كل موظف مبنية من البيانات المسجّلة في النظام</p></div>
+      <button class="btn btn-ghost" id="exportStaffPerformanceBtn">تصدير Excel</button>
+    </div>
+    <div class="table-wrap">
+      ${users.length===0 ? `<div class="empty">لا يوجد مستخدمون بعد.</div>` : `
+      <table>
+        <thead><tr><th>الموظف</th><th>عملاء مسندون له</th><th>عملاء مؤكدون</th><th>تحديثات حالة</th><th>رسائل مرسلة</th><th>اجتماعات أنشأها</th><th>المهام (منجزة/الكل)</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+function exportStaffPerformanceExcel(){
+  const rows = users.map(u=>{
+    const myClients = clients.filter(c=>c.assignedTo===u.id);
+    const confirmedClients = myClients.filter(c=>{ const l = latestComm(c); return l && commBadgeClass(l.status)==='b-done'; }).length;
+    const statusUpdates = clients.reduce((sum,c)=> sum + (c.communications||[]).filter(m=>m.byUser===u.name).length, 0);
+    const messagesSent = sentMessages.filter(m=>m.byUser===u.name).length;
+    const meetingsHeld = meetings.filter(m=>m.createdBy===u.name).length;
+    const myTasks = tasks.filter(t=>t.assignedTo===u.id);
+    const doneTasks = myTasks.filter(t=>t.status==='منجزة').length;
+    return {
+      "الموظف": u.name,
+      "عملاء مسندون له": myClients.length,
+      "عملاء مؤكدون": confirmedClients,
+      "تحديثات حالة": statusUpdates,
+      "رسائل مرسلة": messagesSent,
+      "اجتماعات أنشأها": meetingsHeld,
+      "مهام منجزة": doneTasks,
+      "إجمالي المهام": myTasks.length
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "أداء الموظفين");
+  XLSX.writeFile(wb, `أداء-الموظفين-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+/* ============== جهات الاتصال (Contacts) ============== */
+function contactsToRows(){
+  return contacts.map(k=>({ "الاسم": k.name, "رقم الجوال": k.countryCode+' '+k.phone, "أُضيف بواسطة": k.addedBy||'', "تاريخ الإضافة": fmtDate(k.createdAt) }));
+}
+function exportContactsExcel(){
+  const rows = contactsToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "جهات الاتصال");
+  XLSX.writeFile(wb, `جهات-الاتصال-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function shareContactsExcel(){
+  const rows = contactsToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "جهات الاتصال");
+  await shareWorkbookOrDownload(wb, `جهات-الاتصال-${new Date().toISOString().slice(0,10)}.xlsx`, 'جهات الاتصال');
+}
+function printContactsReport(){
+  const headers = ["الاسم","رقم الجوال","أُضيف بواسطة","تاريخ الإضافة"];
+  const rows = contacts.map(k=>[k.name, k.countryCode+' '+k.phone, k.addedBy||'', fmtDate(k.createdAt)]);
+  printHtmlContent('جهات الاتصال', tableToHtml(headers, rows));
+}
+function renderContactsView(){
+  contactsSelected.forEach(id=>{ if(!contacts.find(k=>k.id===id)) contactsSelected.delete(id); });
+  const allSelected = contacts.length>0 && contacts.every(k=>contactsSelected.has(k.id));
+  const templateOptions = MESSAGE_TEMPLATES.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('');
+
+  const rows = contacts.map(k=>`
+    <tr data-opencontact="${k.id}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="contact-select-checkbox" data-contactselect="${k.id}" ${contactsSelected.has(k.id)?'checked':''}></td>
+      <td>${esc(k.name)}</td>
+      <td dir="ltr" style="text-align:right;">${esc(k.countryCode)} ${esc(k.phone)}</td>
+      <td onclick="event.stopPropagation()"><button class="share-icon-btn" data-wacontact="${k.id}">واتساب</button></td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="topbar">
+      <div><h1>جهات الاتصال</h1><p>قائمة مبسّطة (اسم + جوال) لأي شخص تريد التواصل معه أو دعوته لاجتماع، ولو لم يكن عميلاً مسجلاً بعد</p></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportContactsExcelBtn">تصدير Excel</button>
+        <button class="btn btn-ghost" id="printContactsBtn">طباعة / PDF</button>
+        <button class="btn btn-wa" id="shareContactsExcelBtn">مشاركة</button>
+        <button class="btn btn-primary" id="addContactBtn">+ إضافة جهة اتصال</button>
+      </div>
+    </div>
+
+    ${MESSAGE_TEMPLATES.length>0 ? `
+    <div class="filters" style="align-items:center;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+        <input type="checkbox" id="contactSelectAll" ${allSelected?'checked':''}> تحديد الكل (${contactsSelected.size} محدد)
+      </label>
+      <select id="contactBulkTemplateSelect">${templateOptions}</select>
+      <button class="btn btn-primary btn-sm" id="contactBulkSendBtn" ${contactsSelected.size===0?'disabled':''}>إرسال رسالة جماعية للمحددين</button>
+    </div>` : ''}
+
+    <div class="table-wrap">
+      ${contacts.length===0 ? `<div class="empty">لا توجد جهات اتصال بعد.</div>` : `
+      <table>
+        <thead><tr><th><input type="checkbox" id="contactSelectAllHead" ${allSelected?'checked':''}></th><th>الاسم</th><th>رقم الجوال</th><th>مشاركة</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`}
+    </div>
+  `;
+}
+function openContactModal(id){
+  editingContactId = id || null;
+  renderContactModal();
+  document.getElementById('contactOverlay').classList.remove('hidden');
+}
+function closeContactModal(){
+  document.getElementById('contactOverlay').classList.add('hidden');
+  editingContactId = null;
+}
+function renderContactModal(){
+  const modal = document.getElementById('contactModal');
+  const k = editingContactId ? contacts.find(x=>x.id===editingContactId) : null;
+  const isNew = !k;
+  const data = k || { name:'', countryCode:COUNTRIES[0]?.code||'', phone:'' };
+
+  modal.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div><h2>${isNew ? 'إضافة جهة اتصال' : 'تعديل جهة اتصال'}</h2></div>
+        <button class="modal-close" id="closeContactModalBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      ${isNew ? `
+      <div class="field full" style="margin-bottom:14px;">
+        <label>أو انسخ من عميل حالي (اختياري)</label>
+        <select id="contactFromClientSelect">
+          <option value="">— اختر عميلاً لنسخ اسمه ورقمه —</option>
+          ${clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}
+        </select>
+      </div>` : ''}
+      <form id="contactForm">
+        <div class="form-grid">
+          <div class="field full">
+            <label>الاسم<span class="required-star">*</span></label>
+            <input type="text" name="name" id="contactNameInput" required value="${esc(data.name)}">
+          </div>
+          <div class="field full">
+            <label>رقم الجوال<span class="required-star">*</span></label>
+            <div class="phone-row">
+              <select name="countryCode" id="contactCountrySelect">${COUNTRIES.map(c=>`<option value="${c.code}" ${data.countryCode===c.code?'selected':''}>${c.name} (${c.code})</option>`).join('')}</select>
+              <input type="tel" name="phone" id="contactPhoneInput" required dir="ltr" value="${esc(data.phone)}">
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">${isNew ? 'حفظ جهة الاتصال' : 'حفظ التعديلات'}</button>
+          ${!isNew ? `<button type="button" class="btn btn-ghost" style="color:var(--danger);" id="deleteContactBtn">حذف</button>` : ''}
+          <button type="button" class="btn btn-ghost" id="cancelContactBtn">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.getElementById('closeContactModalBtn').onclick = closeContactModal;
+  document.getElementById('cancelContactBtn').onclick = closeContactModal;
+  const fromClientSelect = document.getElementById('contactFromClientSelect');
+  if(fromClientSelect){
+    fromClientSelect.onchange = (e)=>{
+      const c = clients.find(x=>x.id===e.target.value);
+      if(c){
+        document.getElementById('contactNameInput').value = c.name;
+        document.getElementById('contactCountrySelect').value = c.countryCode;
+        document.getElementById('contactPhoneInput').value = c.phone;
+      }
+    };
+  }
+  const deleteBtn = document.getElementById('deleteContactBtn');
+  if(deleteBtn){
+    deleteBtn.onclick = ()=>{
+      if(!confirm('هل تريد حذف جهة الاتصال هذه؟')) return;
+      contacts = contacts.filter(x=>x.id!==editingContactId);
+      saveContacts();
+      closeContactModal();
+      render();
+    };
+  }
+  document.getElementById('contactForm').onsubmit = (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const contactData = {
+      name: f.name.value.trim(),
+      countryCode: f.countryCode.value,
+      phone: f.phone.value.trim()
+    };
+    if(isNew){
+      contacts.push({ id:'ct'+Date.now(), ...contactData, addedBy: currentUserName()||'', createdAt: new Date().toISOString() });
+    }else{
+      Object.assign(k, contactData);
+    }
+    saveContacts();
+    closeContactModal();
+    render();
+  };
+}
+
 function addClientFormHtml(prefill){
   prefill = prefill || {};
   const uname = currentUserName();
@@ -1646,7 +3308,7 @@ function addClientFormHtml(prefill){
         </div>
 
         <div class="field full">
-          <label>اسم العميل</label>
+          <label>اسم العميل<span class="required-star">*</span></label>
           <input type="text" name="name" required placeholder="مثال: محمد عبدالله" value="${esc(prefill.name||'')}">
         </div>
 
@@ -1659,10 +3321,10 @@ function addClientFormHtml(prefill){
 
         <div class="field"><label>اسم الشركة / المنشأة</label><input type="text" name="companyName" placeholder="اسم الشركة أو المؤسسة (إن وجد)" value="${esc(prefill.companyName||'')}"></div>
         <div class="field"><label>رقم السجل التجاري</label><input type="text" name="crNumber" placeholder="رقم السجل التجاري" value="${esc(prefill.crNumber||'')}"></div>
-        <div class="field full"><label>النشاط الحالي</label><input type="text" name="activity" placeholder="مثال: مطاعم، تجارة تجزئة..." required value="${esc(prefill.activity||'')}"></div>
+        <div class="field full"><label>النشاط الحالي<span class="required-star">*</span></label><input type="text" name="activity" placeholder="مثال: مطاعم، تجارة تجزئة..." required value="${esc(prefill.activity||'')}"></div>
 
         <div class="field full">
-          <label>رقم الجوال</label>
+          <label>رقم الجوال<span class="required-star">*</span></label>
           <div class="phone-row">
             <select name="countryCode">${COUNTRIES.map(c=>`<option value="${c.code}" ${prefill.countryCode===c.code?'selected':''}>${c.name} (${c.code})</option>`).join('')}</select>
             <input type="tel" name="phone" required placeholder="رقم الجوال بدون الصفر الأول" dir="ltr" value="${esc(prefill.phone||'')}">
@@ -1672,6 +3334,38 @@ function addClientFormHtml(prefill){
         <div class="field full">
           <label>البريد الإلكتروني (اختياري)</label>
           <input type="email" name="email" placeholder="example@email.com" dir="ltr" value="${esc(prefill.email||'')}">
+        </div>
+
+        <div class="field full">
+          <label>المنطقة المستهدفة<span class="required-star">*</span></label>
+          <select name="targetRegion" required>
+            <option value="">اختر المنطقة...</option>
+            ${TARGET_REGIONS.map(r=>`<option value="${esc(r)}" ${prefill.targetRegion===r?'selected':''}>${esc(r)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>كيف سمعت عن علامتنا التجارية؟ (اختياري)</label>
+          <select name="heardAbout">
+            <option value="">بدون تحديد</option>
+            ${HEARD_ABOUT_OPTIONS.map(h=>`<option value="${esc(h)}" ${prefill.heardAbout===h?'selected':''}>${esc(h)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>رأس المال المتاح للبدء (اختياري)</label>
+          <select name="capital">
+            <option value="">بدون تحديد</option>
+            ${CAPITAL_OPTIONS.map(c=>`<option value="${esc(c)}" ${prefill.capital===c?'selected':''}>${esc(c)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>نوع التمويل (اختياري)</label>
+          <select name="funding">
+            <option value="">بدون تحديد</option>
+            ${FUNDING_OPTIONS.map(f=>`<option value="${esc(f)}" ${prefill.funding===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select>
         </div>
 
         <div class="field full">
@@ -1688,9 +3382,17 @@ function addClientFormHtml(prefill){
         </div>
 
         <div class="field full">
-          <label>العلامة التجارية المطلوبة</label>
+          <label>العلامة التجارية المطلوبة<span class="required-star">*</span></label>
           <select name="brand" id="brandSelect">
             ${BRANDS.map(b=>`<option value="${esc(b)}" ${(prefill.brand||addFormState.brand)===b?'selected':''}>${esc(b)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>الموظف المسؤول (اختياري)</label>
+          <select name="assignedTo">
+            <option value="">بدون تحديد</option>
+            ${users.map(u=>`<option value="${u.id}" ${(prefill.assignedTo||currentUserId)===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
           </select>
         </div>
 
@@ -1778,9 +3480,14 @@ function wireAddClientForm(container){
       countryCode: f.countryCode.value,
       phone: f.phone.value.trim(),
       email: f.email.value.trim(),
+      targetRegion: f.targetRegion.value,
+      heardAbout: f.heardAbout.value,
+      capital: f.capital.value,
+      funding: f.funding.value,
       triedFranchise: addFormState.triedFranchise,
       prevFranchiseBrand: addFormState.triedFranchise ? f.prevFranchiseBrand.value.trim() : '',
       brand: f.brand.value,
+      assignedTo: f.assignedTo.value || '',
       notes: f.notes.value.trim(),
       addedBy: currentUserName(),
       createdAt: new Date().toISOString(),
@@ -1807,13 +3514,52 @@ function getFilteredCommsClients(){
     return matchesQ && matchesStatus && matchesRating;
   }).slice().reverse();
 }
+function commsToRows(){
+  return getFilteredCommsClients().map(c=>{
+    const l = latestComm(c);
+    const r = latestRating(c);
+    return {
+      "رقم الملف": c.id,
+      "الاسم": c.name,
+      "رقم الجوال": c.countryCode + " " + c.phone,
+      "النشاط": c.activity || "",
+      "التقييم": r ? r.category : "",
+      "حالة التواصل": l ? l.status : "",
+      "آخر تحديث": l ? fmtDate(l.date) : ""
+    };
+  });
+}
+function exportCommsExcel(){
+  const rows = commsToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "حالة الردود");
+  XLSX.writeFile(wb, `حالة-الردود-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function shareCommsExcel(){
+  const rows = commsToRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "حالة الردود");
+  await shareWorkbookOrDownload(wb, `حالة-الردود-${new Date().toISOString().slice(0,10)}.xlsx`, 'حالة الردود');
+}
+function printCommsReport(){
+  const rows = commsToRows();
+  const headers = Object.keys(rows[0] || {"رقم الملف":"","الاسم":"","رقم الجوال":"","النشاط":"","التقييم":"","حالة التواصل":"","آخر تحديث":""});
+  const tableRows = rows.map(r=> headers.map(h=>r[h]));
+  printHtmlContent('حالة الردود', tableToHtml(headers, tableRows));
+}
 function renderCommsView(){
   const filtered = getFilteredCommsClients();
+
+  commsSelected.forEach(id=>{ if(!clients.find(c=>c.id===id)) commsSelected.delete(id); });
+  const allFilteredSelected = filtered.length > 0 && filtered.every(c => commsSelected.has(c.id));
 
   const rows = filtered.map(c=>{
     const l = latestComm(c);
     const r = latestRating(c);
     return `<tr data-id="${c.id}" data-open-tab="comms" class="${rowTintClass(l?l.status:null)}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="comms-select-checkbox" data-commsselect="${c.id}" ${commsSelected.has(c.id)?'checked':''}></td>
       <td><span class="file-id">${c.id}</span></td>
       <td>${esc(c.name)}</td>
       <td dir="ltr" style="text-align:right;">${esc(c.countryCode)} ${esc(c.phone)}</td>
@@ -1831,7 +3577,12 @@ function renderCommsView(){
   return `
     <div class="topbar">
       <div><h1>حالة الردود</h1><p>جميع العملاء وحالة التواصل معهم — البحث بالاسم أو بالحالة فقط</p></div>
-      <button class="btn btn-ghost" data-goto="responsecategories">استجابة العملاء</button>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportCommsExcelBtn">تصدير Excel</button>
+        <button class="btn btn-ghost" id="printCommsBtn">طباعة / PDF</button>
+        <button class="btn btn-wa" id="shareCommsBtn">مشاركة</button>
+        <button class="btn btn-ghost" data-goto="responsecategories">استجابة العملاء</button>
+      </div>
     </div>
 
     <div class="filters">
@@ -1844,10 +3595,21 @@ function renderCommsView(){
       </select>
     </div>
 
+    <div class="filters" style="align-items:center;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+        <input type="checkbox" id="commsSelectAll" ${allFilteredSelected?'checked':''}> تحديد الكل (${commsSelected.size} محدد)
+      </label>
+      <select id="commsBulkStatusSelect">
+        <option value="">اختر حالة...</option>
+        ${COMM_STATUSES.map(s=>`<option value="${s}" style="${statusOptionStyle(s)}">${s}</option>`).join('')}
+      </select>
+      <button class="btn btn-primary btn-sm" id="commsBulkSaveBtn" ${commsSelected.size===0?'disabled':''}>حفظ الحالة للمحددين</button>
+    </div>
+
     <div class="table-wrap">
       ${filtered.length===0 ? `<div class="empty">لا يوجد عملاء مطابقون.</div>` : `
       <table>
-        <thead><tr><th>رقم الملف</th><th>الاسم</th><th>رقم التواصل</th><th>النشاط</th><th>التقييم</th><th>حالة التواصل</th><th>الحالة</th><th>مشاركة</th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="commsSelectAllHead" ${allFilteredSelected?'checked':''}></th><th>رقم الملف</th><th>الاسم</th><th>رقم التواصل</th><th>النشاط</th><th>التقييم</th><th>حالة التواصل</th><th>الحالة</th><th>مشاركة</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`}
     </div>
@@ -1856,21 +3618,24 @@ function renderCommsView(){
 
 /* ============== استجابة العملاء (Response category manager) ============== */
 function renderResponseCategoriesView(){
-  const chips = COMM_STATUSES.map((s, idx)=>`
-    <span class="list-chip" style="${statusOptionStyle(s)}">
-      ${esc(s)}
-      <button data-removestatus="${idx}" title="حذف">×</button>
-    </span>
+  const rows = COMM_STATUSES.map((s, idx)=>`
+    <div class="drag-row" draggable="true" data-dragidx="${idx}" style="${statusOptionStyle(s)}">
+      <span class="drag-handle">⠿</span>
+      <span class="drag-label">${esc(s)}</span>
+      <button type="button" data-cyclecolor="${esc(s)}" title="تغيير اللون" style="background:none; border:none; cursor:pointer; font-size:14px;">🎨</button>
+      <button data-removestatus="${idx}" title="حذف" class="drag-remove">×</button>
+    </div>
   `).join('');
 
   return `
     <div class="topbar">
-      <div><h1>استجابة العملاء</h1><p>قائمة حالات الرد المستخدمة في صفحة "حالة الردود" — أضف أو احذف حسب الحاجة</p></div>
+      <div><h1>استجابة العملاء</h1><p>قائمة حالات الرد المستخدمة في صفحة "حالة الردود" — أضف، احذف، اسحب لإعادة الترتيب، أو اضغط 🎨 لتغيير لون أي حالة</p></div>
     </div>
     <div class="share-card" style="max-width:600px;">
       <h3>حالات الرد الحالية</h3>
-      <div class="list-chips">${chips || '<p style="color:var(--muted); font-size:13px;">لا توجد حالات بعد.</p>'}</div>
-      <form id="addStatusForm" class="list-add-row">
+      <p style="color:var(--muted); font-size:11.5px; margin-bottom:10px;">كل حالة جديدة تأخذ لوناً تلقائياً عند الإضافة. اسحب من المقبض (⠿) لتغيير الترتيب.</p>
+      <div id="statusDragList">${rows || '<p style="color:var(--muted); font-size:13px;">لا توجد حالات بعد.</p>'}</div>
+      <form id="addStatusForm" class="list-add-row" style="margin-top:12px;">
         <input type="text" id="newStatusInput" placeholder="إضافة حالة جديدة" required>
         <button type="submit" class="btn btn-primary btn-sm">إضافة</button>
       </form>
@@ -1938,7 +3703,9 @@ function renderReportView(){
 }
 
 /* ============== Users View ============== */
+let editingPermissionsUserId = null;
 function renderUsersView(){
+  const amSuperAdmin = isSuperAdmin();
   const cards = users.map(u=>{
     const count = clients.filter(c=>c.addedBy===u.name).length;
     const isCurrent = u.id === currentUserId;
@@ -1957,20 +3724,36 @@ function renderUsersView(){
         </form>
       </div>`;
     }
+    if(editingPermissionsUserId === u.id){
+      const checks = ALL_NAV_VIEWS.filter(v=>v.id!=='settings').map(v=>`
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin-bottom:6px;">
+          <input type="checkbox" class="perm-checkbox" data-permview="${v.id}" ${(u.permissions||[]).includes(v.id)?'checked':''}> ${esc(v.label)}
+        </label>
+      `).join('');
+      return `<div class="user-card ${isCurrent?'current':''}">
+        <div class="uname">${avatarHtml} ${esc(u.name)} <span class="badge b-none">صلاحيات الوصول</span></div>
+        <div style="margin-top:10px; max-height:220px; overflow-y:auto;">${checks}</div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-primary btn-sm" data-savepermissions="${u.id}">حفظ الصلاحيات</button>
+          <button class="btn btn-ghost btn-sm" data-cancelpermissions="1">إلغاء</button>
+        </div>
+      </div>`;
+    }
     return `<div class="user-card ${isCurrent?'current':''}">
-      <div class="uname">${avatarHtml} ${esc(u.name)}</div>
+      <div class="uname">${avatarHtml} ${esc(u.name)} ${u.role==='super_admin' ? '<span class="badge b-done">سوبر أدمن</span>' : ''}</div>
       <div class="umeta">اسم الدخول: ${esc(u.username)} · أُضيف ${fmtDate(u.createdAt)} · ${count} عميل مسجّل</div>
       <div class="btn-row">
         ${isCurrent ? `<span class="badge b-done">أنت الآن</span>` : ''}
         <button class="btn btn-ghost btn-sm" data-edituser="${u.id}">تعديل الحساب</button>
         <label class="btn btn-ghost btn-sm" style="cursor:pointer;">تغيير الصورة<input type="file" accept="image/*" data-avatar-for="${u.id}" style="display:none;"></label>
+        ${(amSuperAdmin && u.role!=='super_admin') ? `<button class="btn btn-ghost btn-sm" data-editpermissions="${u.id}">الصلاحيات</button>` : ''}
         ${users.length>1 ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger);" data-deleteuser="${u.id}">حذف</button>` : ''}
       </div>
     </div>`;
   }).join('');
 
   return `
-    <div class="topbar"><div><h1>المستخدمون</h1><p>حسابات الدخول إلى النظام — كل حساب له اسم مستخدم وكلمة مرور خاصة به، ويُسجَّل تلقائياً كمن أضاف كل عميل</p></div></div>
+    <div class="topbar"><div><h1>المستخدمون</h1><p>حسابات الدخول إلى النظام — كل حساب له اسم مستخدم وكلمة مرور خاصة به، ويُسجَّل تلقائياً كمن أضاف كل عميل${amSuperAdmin ? '. بصفتك سوبر أدمن، يمكنك تحديد صفحات النظام التي يصل إليها كل مستخدم.' : ''}</p></div></div>
     <form class="add-user-form" id="addUserForm">
       <input type="text" id="newUserName" placeholder="الاسم الكامل" required>
       <input type="text" id="newUserUsername" placeholder="اسم المستخدم" required>
@@ -2027,10 +3810,16 @@ function renderShareView(){
 const LIST_META = {
   entityTypes: { label:"أنواع الجهة", type:"simple" },
   ratingOptions: { label:"خيارات التقييم", type:"simple" },
+  heardAboutOptions: { label:"كيف سمعت عن علامتنا التجارية", type:"simple" },
+  capitalOptions: { label:"رأس المال المتاح للبدء", type:"simple" },
+  fundingOptions: { label:"نوع التمويل", type:"simple" },
+  targetRegions: { label:"المناطق المستهدفة", type:"simple" },
+  meetingTypes: { label:"أنواع الاجتماعات", type:"simple" },
+  meetingLocations: { label:"مواقع/فروع الاجتماعات", type:"simple" },
   countries: { label:"الدول ومفاتيح الاتصال", type:"country" }
 };
 function getListArray(key){
-  return { entityTypes:ENTITY_TYPES, ratingOptions:RATING_OPTIONS, countries:COUNTRIES }[key];
+  return { entityTypes:ENTITY_TYPES, ratingOptions:RATING_OPTIONS, heardAboutOptions:HEARD_ABOUT_OPTIONS, capitalOptions:CAPITAL_OPTIONS, fundingOptions:FUNDING_OPTIONS, targetRegions:TARGET_REGIONS, meetingTypes:MEETING_TYPES, meetingLocations:MEETING_LOCATIONS, countries:COUNTRIES }[key];
 }
 function renderSettingsView(){
   const listsHtml = Object.entries(LIST_META).map(([key, meta])=>{
@@ -2083,6 +3872,20 @@ function renderSettingsView(){
       <button class="btn btn-ghost btn-sm" data-goto="responsecategories">فتح استجابة العملاء</button>
     </div>
 
+    <div class="share-card">
+      <h3>تخصيص أسماء قوائم النظام</h3>
+      <p style="color:var(--muted); font-size:12px; margin-bottom:14px;">غيّر مسمى أي صفحة رئيسية أو فرعية في الشريط الجانبي حسب ما يناسب فريقك. اترك الخانة فارغة للرجوع للاسم الافتراضي. ملاحظة: بعض العناصر (مثل "التواصل مع العملاء" و"حالة الردود") تفتح نفس الصفحة، لذا تغيير أحدهما قد يغيّر الآخر أيضاً.</p>
+      <div style="display:flex; flex-direction:column; gap:8px; max-width:480px;">
+        ${ALL_NAV_VIEWS.map(v=>`
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="min-width:150px; font-size:12px; color:var(--muted);">${esc(v.label)}</span>
+            <input type="text" class="nav-label-input" data-navlabelkey="${v.id}" placeholder="${esc(v.label)}" value="${esc(navLabelOverrides[v.id]||'')}" style="flex:1; padding:7px 10px; border-radius:6px; border:1.5px solid var(--border); font-size:12px;">
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn btn-primary btn-sm" id="saveNavLabelsBtn" style="margin-top:12px;">حفظ المسمّيات</button>
+    </div>
+
     <h2 style="font-size:16px; margin-bottom:4px;">إدارة القوائم</h2>
     <p style="color:var(--muted); font-size:12.5px; margin-bottom:14px;">أضف أو احذف أي عنصر من هذه القوائم — التغييرات تنعكس فوراً في نموذج إضافة العميل، الفلاتر، والتقارير. حسابات المستخدمين (اسم الدخول وكلمة المرور) تُدار من صفحة "المستخدمون".</p>
     ${listsHtml}
@@ -2126,6 +3929,34 @@ function renderModal(){
       </div>
       <div class="field full"><label>البريد الإلكتروني (اختياري)</label><input type="email" name="email" value="${esc(c.email||'')}" dir="ltr"></div>
       <div class="field full">
+        <label>المنطقة المستهدفة<span class="required-star">*</span></label>
+        <select name="targetRegion" required>
+          <option value="">اختر المنطقة...</option>
+          ${TARGET_REGIONS.map(r=>`<option value="${esc(r)}" ${c.targetRegion===r?'selected':''}>${esc(r)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field full">
+        <label>كيف سمعت عن علامتنا التجارية؟ (اختياري)</label>
+        <select name="heardAbout">
+          <option value="">بدون تحديد</option>
+          ${HEARD_ABOUT_OPTIONS.map(h=>`<option value="${esc(h)}" ${c.heardAbout===h?'selected':''}>${esc(h)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field full">
+        <label>رأس المال المتاح للبدء (اختياري)</label>
+        <select name="capital">
+          <option value="">بدون تحديد</option>
+          ${CAPITAL_OPTIONS.map(cap=>`<option value="${esc(cap)}" ${c.capital===cap?'selected':''}>${esc(cap)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field full">
+        <label>نوع التمويل (اختياري)</label>
+        <select name="funding">
+          <option value="">بدون تحديد</option>
+          ${FUNDING_OPTIONS.map(fu=>`<option value="${esc(fu)}" ${c.funding===fu?'selected':''}>${esc(fu)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field full">
         <label>هل سبق التعامل بنظام الفرنشايز؟</label>
         <div class="circle-row" id="editFranchiseGroup">
           <label class="circle-option"><input type="radio" name="triedFranchise" value="yes" ${c.triedFranchise?'checked':''}> نعم</label>
@@ -2138,6 +3969,12 @@ function renderModal(){
       </div>
       <div class="field full"><label>العلامة التجارية المطلوبة</label>
         <select name="brand">${BRANDS.map(b=>`<option value="${b}" ${c.brand===b?'selected':''}>${b}</option>`).join('')}</select>
+      </div>
+      <div class="field full"><label>الموظف المسؤول (اختياري)</label>
+        <select name="assignedTo">
+          <option value="">بدون تحديد</option>
+          ${users.map(u=>`<option value="${u.id}" ${c.assignedTo===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+        </select>
       </div>
       <div class="field full"><label>ملاحظات</label><textarea name="notes" rows="3">${esc(c.notes||'')}</textarea></div>
       <div class="btn-row" style="grid-column:1 / -1; margin-top:6px;">
@@ -2156,15 +3993,21 @@ function renderModal(){
       <div class="info-item"><div class="k">الدولة</div><div class="v">${esc(countryNameFromCode(c.countryCode))}</div></div>
       <div class="info-item"><div class="k">رقم الجوال</div><div class="v" dir="ltr" style="text-align:right;">${esc(c.countryCode)} ${esc(c.phone)}</div></div>
       <div class="info-item"><div class="k">البريد الإلكتروني</div><div class="v" dir="ltr" style="text-align:right;">${esc(c.email||'—')}</div></div>
+      <div class="info-item"><div class="k">المنطقة المستهدفة</div><div class="v">${esc(c.targetRegion||'—')}</div></div>
+      <div class="info-item"><div class="k">كيف سمع عن العلامة</div><div class="v">${esc(c.heardAbout||'—')}</div></div>
+      <div class="info-item"><div class="k">رأس المال المتاح</div><div class="v">${esc(c.capital||'—')}</div></div>
+      <div class="info-item"><div class="k">نوع التمويل</div><div class="v">${esc(c.funding||'—')}</div></div>
       <div class="info-item"><div class="k">خبرة فرنشايز سابقة</div><div class="v">${c.triedFranchise? 'نعم' : 'لا'}</div></div>
       <div class="info-item"><div class="k">العلامة السابقة (إن وجدت)</div><div class="v">${esc(c.prevFranchiseBrand||'—')}</div></div>
       <div class="info-item"><div class="k">العلامة التجارية المطلوبة</div><div class="v">${esc(c.brand)}</div></div>
       <div class="info-item"><div class="k">أُضيف بواسطة</div><div class="v">${esc(c.addedBy || '—')}</div></div>
+      <div class="info-item"><div class="k">الموظف المسؤول</div><div class="v">${(()=>{ const au = users.find(x=>x.id===c.assignedTo); return au ? esc(au.name) : '—'; })()}</div></div>
       <div class="info-item"><div class="k">تاريخ الإضافة</div><div class="v">${fmtDate(c.createdAt)}</div></div>
       <div class="info-item full" style="grid-column:1 / -1;"><div class="k">ملاحظات</div><div class="v">${esc(c.notes||'—')}</div></div>
     </div>
     <div class="btn-row" style="margin-top:18px;">
       <a class="btn btn-wa btn-sm" href="${waLink(c)}" target="_blank" rel="noopener" id="modalWaShareLink">مشاركة عبر واتساب</a>
+      <button class="btn btn-ghost btn-sm" id="addTaskForClientBtn">+ إضافة مهمة لهذا العميل</button>
       <button class="btn btn-ghost btn-sm" id="editClientBtn">تعديل البيانات</button>
       <button class="btn btn-ghost btn-sm" id="deleteClientBtn" style="color:var(--danger);">حذف العميل</button>
     </div>
@@ -2237,6 +4080,13 @@ function renderModal(){
 
   const editClientBtn = modal.querySelector('#editClientBtn');
   if(editClientBtn) editClientBtn.onclick = ()=>{ clientEditMode = true; renderModal(); };
+  const addTaskForClientBtn = modal.querySelector('#addTaskForClientBtn');
+  if(addTaskForClientBtn){
+    addTaskForClientBtn.onclick = ()=>{
+      closeModal();
+      openTaskModal(null, { clientIds:[c.id], title: `متابعة العميل: ${c.name}` });
+    };
+  }
   const cancelEditClient = modal.querySelector('#cancelEditClient');
   if(cancelEditClient) cancelEditClient.onclick = ()=>{ clientEditMode = false; renderModal(); };
   const editFranchiseGroup = modal.querySelector('#editFranchiseGroup');
@@ -2264,9 +4114,14 @@ function renderModal(){
       c.countryCode = f.countryCode.value;
       c.phone = f.phone.value.trim();
       c.email = f.email.value.trim();
+      c.targetRegion = f.targetRegion.value;
+      c.heardAbout = f.heardAbout.value;
+      c.capital = f.capital.value;
+      c.funding = f.funding.value;
       c.triedFranchise = f.triedFranchise.value === 'yes';
       c.prevFranchiseBrand = c.triedFranchise ? f.prevFranchiseBrand.value.trim() : '';
       c.brand = f.brand.value;
+      c.assignedTo = f.assignedTo.value || '';
       c.notes = f.notes.value.trim();
       saveClients();
       clientEditMode = false;
@@ -2307,7 +4162,7 @@ function renderModal(){
       if(!pendingCommStatus){ alert('يرجى اختيار حالة التواصل'); return; }
       const note = modal.querySelector('#commNote').value.trim();
       c.communications = c.communications || [];
-      c.communications.push({ date: new Date().toISOString(), status: pendingCommStatus, note });
+      c.communications.push({ date: new Date().toISOString(), status: pendingCommStatus, note, byUser: currentUserName() || '' });
       pendingCommStatus = null;
       saveClients();
       renderModal();
@@ -2317,7 +4172,7 @@ function renderModal(){
 
 /* ============== Export / Import ============== */
 function exportData(){
-  const lists = { brands:BRANDS, countries:COUNTRIES, entityTypes:ENTITY_TYPES, commStatuses:COMM_STATUSES, ratingOptions:RATING_OPTIONS };
+  const lists = { brands:BRANDS, countries:COUNTRIES, entityTypes:ENTITY_TYPES, commStatuses:COMM_STATUSES, ratingOptions:RATING_OPTIONS, messageTemplates:MESSAGE_TEMPLATES, heardAboutOptions:HEARD_ABOUT_OPTIONS, capitalOptions:CAPITAL_OPTIONS, fundingOptions:FUNDING_OPTIONS };
   const payload = { clients, users, lists, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -2353,7 +4208,7 @@ function importDataFromFile(file){
 }
 
 /* ============== Excel export / import ============== */
-const EXCEL_HEADERS = ["رقم الملف","اسم العميل","نوع الجهة","اسم الشركة","رقم السجل التجاري","النشاط الحالي","الدولة","رقم الجوال","البريد الإلكتروني","سبق الفرنشايز","العلامة التي حصل عليها سابقاً","البراند المطلوب","التقييم","حالة التواصل","ملاحظات","أضيف بواسطة","تاريخ الإضافة"];
+const EXCEL_HEADERS = ["رقم الملف","اسم العميل","نوع الجهة","اسم الشركة","رقم السجل التجاري","النشاط الحالي","الدولة","رقم الجوال","البريد الإلكتروني","المنطقة المستهدفة","كيف سمع عن العلامة","رأس المال المتاح","نوع التمويل","سبق الفرنشايز","العلامة التي حصل عليها سابقاً","البراند المطلوب","التقييم","حالة التواصل","الموظف المسؤول","ملاحظات","أضيف بواسطة","تاريخ الإضافة"];
 
 function clientToExcelRow(c){
   return {
@@ -2366,11 +4221,16 @@ function clientToExcelRow(c){
     "الدولة": countryNameFromCode(c.countryCode),
     "رقم الجوال": c.countryCode + " " + c.phone,
     "البريد الإلكتروني": c.email || "",
+    "المنطقة المستهدفة": c.targetRegion || "",
+    "كيف سمع عن العلامة": c.heardAbout || "",
+    "رأس المال المتاح": c.capital || "",
+    "نوع التمويل": c.funding || "",
     "سبق الفرنشايز": c.triedFranchise ? "نعم" : "لا",
     "العلامة التي حصل عليها سابقاً": c.prevFranchiseBrand || "",
     "البراند المطلوب": c.brand,
     "التقييم": (latestRating(c) ? latestRating(c).category : ""),
     "حالة التواصل": (latestComm(c) ? latestComm(c).status : ""),
+    "الموظف المسؤول": (()=>{ const au = users.find(x=>x.id===c.assignedTo); return au ? au.name : ""; })(),
     "ملاحظات": c.notes || "",
     "أضيف بواسطة": c.addedBy || "",
     "تاريخ الإضافة": fmtDate(c.createdAt)
@@ -2382,6 +4242,23 @@ function exportClientsExcel(list){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "العملاء");
   XLSX.writeFile(wb, `عملاء-الفرنشايز-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function shareClientsExcel(list){
+  const rows = (list || clients).map(clientToExcelRow);
+  const ws = XLSX.utils.json_to_sheet(rows, {header: EXCEL_HEADERS});
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "العملاء");
+  await shareWorkbookOrDownload(wb, `عملاء-الفرنشايز-${new Date().toISOString().slice(0,10)}.xlsx`, 'قائمة العملاء');
+}
+function printClientsReport(list){
+  const targets = list || clients;
+  const headers = ["رقم الملف","الاسم","العلامة","الجوال","الموظف المسؤول","التقييم","حالة التواصل"];
+  const rows = targets.map(c=>{
+    const l = latestComm(c); const r = latestRating(c);
+    const au = users.find(x=>x.id===c.assignedTo);
+    return [c.id, c.name, c.brand, c.countryCode+' '+c.phone, au?au.name:'—', r?r.category:'—', l?l.status:'—'];
+  });
+  printHtmlContent('قائمة العملاء', tableToHtml(headers, rows));
 }
 function exportReportExcel(){
   const rows = clients.map(c=>({
@@ -2492,6 +4369,36 @@ function attachViewHandlers(){
   });
   const voiceCmdBtn = document.getElementById('voiceCmdBtn');
   if(voiceCmdBtn) voiceCmdBtn.onclick = startVoiceCommand;
+  const notifBellBtn = document.getElementById('notifBellBtn');
+  if(notifBellBtn) notifBellBtn.onclick = ()=>{ notifOpen = !notifOpen; render(); };
+  document.querySelectorAll('[data-openmeeting]').forEach(el=>{
+    el.onclick = ()=>{ notifOpen = false; openMeetingModal(el.dataset.openmeeting); };
+  });
+  document.querySelectorAll('[data-opentask]').forEach(el=>{
+    el.onclick = ()=>{ openTaskModal(el.dataset.opentask); };
+  });
+  document.querySelectorAll('[data-completetask]').forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      const t = tasks.find(x=>x.id===btn.dataset.completetask);
+      if(t){ t.status = 'منجزة'; saveTasks(); render(); }
+    };
+  });
+  document.querySelectorAll('[data-opencontact]').forEach(el=>{
+    el.onclick = ()=>{ openContactModal(el.dataset.opencontact); };
+  });
+  document.querySelectorAll('[data-wacontact]').forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      const k = contacts.find(x=>x.id===btn.dataset.wacontact);
+      if(k){
+        const defaultTpl = MESSAGE_TEMPLATES[0];
+        const msg = defaultTpl ? fillTemplate(defaultTpl.text, k) : `مرحباً ${k.name}،`;
+        window.open(waLinkWithText(k, msg), '_blank');
+        logSentMessage(k, 'واتساب', defaultTpl ? defaultTpl.title : '', msg);
+      }
+    };
+  });
 
   // shared: whatsapp share buttons + row clicks appear on list & comms
   document.querySelectorAll('[data-wa]').forEach(btn=>{
@@ -2526,7 +4433,7 @@ function attachViewHandlers(){
           return;
         }
         c.communications = c.communications || [];
-        c.communications.push({ date:new Date().toISOString(), status, note:'' });
+        c.communications.push({ date:new Date().toISOString(), status, note:'', byUser: currentUserName() || '' });
         saveClients();
       }
       openStatusMenuFor = null;
@@ -2557,7 +4464,8 @@ function attachViewHandlers(){
 
   if(currentView === 'list'){
     document.getElementById('dashAddClientBtn').onclick = openAddClientModal;
-    document.getElementById('systemShareBtn').onclick = renderSystemShareModal;
+    const systemShareBtn = document.getElementById('systemShareBtn');
+    if(systemShareBtn) systemShareBtn.onclick = renderSystemShareModal;
     document.querySelectorAll('[data-brand-goto]').forEach(bc=>{
       bc.onclick = ()=>{ brandReportFilter.brand = bc.dataset.brandGoto; setView('brandreport'); };
     });
@@ -2568,12 +4476,15 @@ function attachViewHandlers(){
     document.getElementById('fq').oninput = (e)=>{ listFilters.q = e.target.value; render(); const el=document.getElementById('fq'); el.focus(); el.setSelectionRange(listFilters.q.length, listFilters.q.length); };
     document.getElementById('fstatus').onchange = (e)=>{ listFilters.status = e.target.value; render(); };
     document.getElementById('frating').onchange = (e)=>{ listFilters.rating = e.target.value; render(); };
+    document.getElementById('fassigned').onchange = (e)=>{ listFilters.assignedTo = e.target.value; render(); };
     document.querySelectorAll('.brand-card').forEach(bc=>{
       bc.onclick = ()=>{ listFilters.brand = (listFilters.brand===bc.dataset.brand) ? '' : bc.dataset.brand; render(); };
     });
     const clearBrand = document.getElementById('clearBrand');
     if(clearBrand) clearBrand.onclick = ()=>{ listFilters.brand=''; render(); };
     document.getElementById('exportClientsExcelBtn').onclick = ()=> exportClientsExcel(getFilteredListClients());
+    document.getElementById('printClientsBtn').onclick = ()=> printClientsReport(getFilteredListClients());
+    document.getElementById('shareClientsExcelBtn').onclick = ()=> shareClientsExcel(getFilteredListClients());
   }
   else if(currentView === 'brands'){
     document.getElementById('openAddBrandBtn').onclick = openAddBrandModal;
@@ -2604,10 +4515,138 @@ function attachViewHandlers(){
       };
     }
   }
+  else if(currentView === 'meetings'){
+    document.getElementById('addMeetingBtn').onclick = ()=> openMeetingModal(null);
+    document.getElementById('shareMeetingFormBtn').onclick = renderShareMeetingFormModal;
+  }
+  else if(currentView === 'meetingsreport'){
+    document.getElementById('meetingsFromDate').onchange = (e)=>{ meetingsFilter.fromDate = e.target.value; render(); };
+    document.getElementById('meetingsToDate').onchange = (e)=>{ meetingsFilter.toDate = e.target.value; render(); };
+    document.getElementById('meetingsTypeFilter').onchange = (e)=>{ meetingsFilter.type = e.target.value; render(); };
+    document.getElementById('meetingsLocationFilter').onchange = (e)=>{ meetingsFilter.location = e.target.value; render(); };
+    document.getElementById('meetingsReportSearchBtn').onclick = ()=>{
+      meetingsFilter.fromDate = document.getElementById('meetingsFromDate').value;
+      meetingsFilter.toDate = document.getElementById('meetingsToDate').value;
+      meetingsFilter.type = document.getElementById('meetingsTypeFilter').value;
+      meetingsFilter.location = document.getElementById('meetingsLocationFilter').value;
+      render();
+    };
+    document.getElementById('exportMeetingsExcelBtn').onclick = exportMeetingsExcel;
+    document.getElementById('printMeetingsReportBtn').onclick = printMeetingsReportPage;
+    document.getElementById('shareMeetingsReportExcelBtn').onclick = shareMeetingsReportExcel;
+  }
+  else if(currentView === 'tasks'){
+    document.getElementById('addTaskBtn').onclick = ()=> openTaskModal(null);
+    document.getElementById('exportTasksListExcelBtn').onclick = exportTasksListExcel;
+    document.getElementById('printTasksBtn').onclick = printTasksReport;
+    document.getElementById('shareTasksExcelBtn').onclick = shareTasksListExcel;
+    document.getElementById('taskStatusFilter').onchange = (e)=>{ tasksFilter.status = e.target.value; render(); };
+    document.getElementById('taskAssignedFilter').onchange = (e)=>{ tasksFilter.assignedTo = e.target.value; render(); };
+  }
+  else if(currentView === 'contacts'){
+    document.getElementById('addContactBtn').onclick = ()=> openContactModal(null);
+    document.getElementById('exportContactsExcelBtn').onclick = exportContactsExcel;
+    document.getElementById('printContactsBtn').onclick = printContactsReport;
+    document.getElementById('shareContactsExcelBtn').onclick = shareContactsExcel;
+    document.querySelectorAll('.contact-select-checkbox').forEach(cb=>{
+      cb.onchange = (e)=>{
+        const id = cb.dataset.contactselect;
+        if(e.target.checked) contactsSelected.add(id); else contactsSelected.delete(id);
+        render();
+      };
+    });
+    const toggleContactSelectAll = (checked)=>{
+      if(checked) contacts.forEach(k=> contactsSelected.add(k.id));
+      else contacts.forEach(k=> contactsSelected.delete(k.id));
+      render();
+    };
+    const contactSelectAll = document.getElementById('contactSelectAll');
+    if(contactSelectAll) contactSelectAll.onchange = (e)=> toggleContactSelectAll(e.target.checked);
+    const contactSelectAllHead = document.getElementById('contactSelectAllHead');
+    if(contactSelectAllHead) contactSelectAllHead.onchange = (e)=> toggleContactSelectAll(e.target.checked);
+    const contactBulkSendBtn = document.getElementById('contactBulkSendBtn');
+    if(contactBulkSendBtn){
+      contactBulkSendBtn.onclick = ()=>{
+        if(contactsSelected.size === 0) return;
+        const templateId = document.getElementById('contactBulkTemplateSelect').value;
+        const template = MESSAGE_TEMPLATES.find(t=>t.id===templateId);
+        if(!template){ alert('يرجى اختيار قالب رسالة'); return; }
+        const targets = contacts.filter(k=> contactsSelected.has(k.id));
+        if(!confirm(`سيتم فتح واتساب لكل جهة اتصال من المحددين (${targets.length}). هل تريد المتابعة؟`)) return;
+        targets.forEach((k, i)=>{
+          setTimeout(()=>{
+            const text = fillTemplate(template.text, k);
+            window.open(waLinkWithText(k, text), '_blank');
+            logSentMessage(k, 'واتساب', template.title, text);
+          }, i * 400);
+        });
+        contactsSelected.clear();
+        render();
+      };
+    }
+  }
+  else if(currentView === 'tasksreport'){
+    document.getElementById('tasksFromDate').onchange = (e)=>{ tasksReportFilter.fromDate = e.target.value; render(); };
+    document.getElementById('tasksToDate').onchange = (e)=>{ tasksReportFilter.toDate = e.target.value; render(); };
+    document.getElementById('tasksReportAssignedFilter').onchange = (e)=>{ tasksReportFilter.assignedTo = e.target.value; render(); };
+    document.getElementById('tasksReportStatusFilter').onchange = (e)=>{ tasksReportFilter.status = e.target.value; render(); };
+    document.getElementById('tasksReportSearchBtn').onclick = ()=>{
+      tasksReportFilter.fromDate = document.getElementById('tasksFromDate').value;
+      tasksReportFilter.toDate = document.getElementById('tasksToDate').value;
+      tasksReportFilter.assignedTo = document.getElementById('tasksReportAssignedFilter').value;
+      tasksReportFilter.status = document.getElementById('tasksReportStatusFilter').value;
+      render();
+    };
+    document.getElementById('exportTasksExcelBtn').onclick = exportTasksExcel;
+    document.getElementById('printTasksReportBtn').onclick = printTasksReportPage;
+    document.getElementById('shareTasksReportExcelBtn').onclick = shareTasksReportExcel;
+  }
+  else if(currentView === 'staffperformance'){
+    document.getElementById('exportStaffPerformanceBtn').onclick = exportStaffPerformanceExcel;
+  }
   else if(currentView === 'comms'){
+    document.getElementById('exportCommsExcelBtn').onclick = exportCommsExcel;
+    document.getElementById('printCommsBtn').onclick = printCommsReport;
+    document.getElementById('shareCommsBtn').onclick = shareCommsExcel;
     document.getElementById('commsSearchBtn').onclick = ()=> render();
     document.getElementById('cq').oninput = (e)=>{ commFilters.q = e.target.value; render(); const el=document.getElementById('cq'); el.focus(); el.setSelectionRange(commFilters.q.length, commFilters.q.length); };
     document.getElementById('cstatus').onchange = (e)=>{ commFilters.status = e.target.value; render(); };
+
+    document.querySelectorAll('.comms-select-checkbox').forEach(cb=>{
+      cb.onchange = (e)=>{
+        const id = cb.dataset.commsselect;
+        if(e.target.checked) commsSelected.add(id); else commsSelected.delete(id);
+        render();
+      };
+    });
+    const toggleCommsSelectAll = (checked)=>{
+      const filtered = getFilteredCommsClients();
+      if(checked) filtered.forEach(c=> commsSelected.add(c.id));
+      else filtered.forEach(c=> commsSelected.delete(c.id));
+      render();
+    };
+    const commsSelectAll = document.getElementById('commsSelectAll');
+    if(commsSelectAll) commsSelectAll.onchange = (e)=> toggleCommsSelectAll(e.target.checked);
+    const commsSelectAllHead = document.getElementById('commsSelectAllHead');
+    if(commsSelectAllHead) commsSelectAllHead.onchange = (e)=> toggleCommsSelectAll(e.target.checked);
+
+    const commsBulkSaveBtn = document.getElementById('commsBulkSaveBtn');
+    if(commsBulkSaveBtn){
+      commsBulkSaveBtn.onclick = ()=>{
+        if(commsSelected.size === 0) return;
+        const status = document.getElementById('commsBulkStatusSelect').value;
+        if(!status){ alert('يرجى اختيار حالة أولاً'); return; }
+        const targets = clients.filter(c=> commsSelected.has(c.id));
+        if(!confirm(`تأكيد حفظ حالة التواصل لـ ${targets.length} عميل كـ: ${status}؟\n(لن يتم إرسال أي رسالة للعملاء — هذا لتسجيل الحالة داخل النظام فقط)`)) return;
+        targets.forEach(c=>{
+          c.communications = c.communications || [];
+          c.communications.push({ date:new Date().toISOString(), status, note:'', byUser: currentUserName() || '' });
+        });
+        saveClients();
+        commsSelected.clear();
+        render();
+      };
+    }
   }
   else if(currentView === 'responsecategories'){
     document.getElementById('addStatusForm').onsubmit = (e)=>{
@@ -2617,6 +4656,7 @@ function attachViewHandlers(){
       if(!val) return;
       if(COMM_STATUSES.includes(val)){ alert('هذه الحالة موجودة بالفعل'); return; }
       COMM_STATUSES.push(val);
+      assignStatusColor(val);
       saveLists();
       render();
     };
@@ -2629,6 +4669,14 @@ function attachViewHandlers(){
         render();
       };
     });
+    document.querySelectorAll('[data-cyclecolor]').forEach(btn=>{
+      btn.onclick = ()=>{
+        cycleStatusColor(btn.dataset.cyclecolor);
+        saveLists();
+        render();
+      };
+    });
+    wireDragReorder('statusDragList', COMM_STATUSES, ()=>{ saveLists(); render(); });
   }
   else if(currentView === 'users'){
     document.getElementById('addUserForm').onsubmit = (e)=>{
@@ -2638,7 +4686,7 @@ function attachViewHandlers(){
       const password = document.getElementById('newUserPassword').value.trim();
       if(!name || !username || !password) return;
       if(users.find(x=>x.username===username)){ alert('اسم المستخدم هذا موجود بالفعل، اختر اسماً آخر'); return; }
-      const u = { id: 'u'+Date.now(), name, username, password, createdAt: new Date().toISOString(), avatar:null };
+      const u = { id: 'u'+Date.now(), name, username, password, createdAt: new Date().toISOString(), avatar:null, role:'user', permissions: DEFAULT_USER_PERMISSIONS.slice() };
       users.push(u);
       saveUsers();
       render();
@@ -2689,6 +4737,26 @@ function attachViewHandlers(){
         });
       };
     });
+    document.querySelectorAll('[data-editpermissions]').forEach(btn=>{
+      btn.onclick = ()=>{ editingPermissionsUserId = btn.dataset.editpermissions; render(); };
+    });
+    document.querySelectorAll('[data-cancelpermissions]').forEach(btn=>{
+      btn.onclick = ()=>{ editingPermissionsUserId = null; render(); };
+    });
+    document.querySelectorAll('[data-savepermissions]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const u = users.find(x=>x.id===btn.dataset.savepermissions);
+        if(!u) return;
+        const checked = [];
+        document.querySelectorAll('.perm-checkbox').forEach(cb=>{ if(cb.checked) checked.push(cb.dataset.permview); });
+        if(!checked.includes('list')) checked.push('list');
+        u.permissions = checked;
+        saveUsers();
+        editingPermissionsUserId = null;
+        applyNavPermissions();
+        render();
+      };
+    });
   }
   else if(currentView === 'share'){
     document.getElementById('exportBtn').onclick = exportData;
@@ -2704,7 +4772,7 @@ function attachViewHandlers(){
       const title = document.getElementById('newTemplateTitle').value.trim();
       const text = document.getElementById('newTemplateText').value.trim();
       if(!title || !text) return;
-      MESSAGE_TEMPLATES.push({ id:'tpl'+Date.now(), title, text });
+      MESSAGE_TEMPLATES.push({ id:'tpl'+Date.now(), title, text, color: TEMPLATE_COLORS[MESSAGE_TEMPLATES.length % TEMPLATE_COLORS.length] });
       saveLists();
       render();
     };
@@ -2737,6 +4805,8 @@ function attachViewHandlers(){
     });
   }
   else if(currentView === 'sentmessages'){
+    const exportBtn = document.getElementById('exportSendMessagesExcelBtn');
+    if(exportBtn) exportBtn.onclick = exportSendMessagesExcel;
     const searchInput = document.getElementById('sendSearchInput');
     if(searchInput){
       searchInput.oninput = (e)=>{ sendMessagesFilter.q = e.target.value; render(); const el=document.getElementById('sendSearchInput'); el.focus(); el.setSelectionRange(sendMessagesFilter.q.length, sendMessagesFilter.q.length); };
@@ -2767,9 +4837,75 @@ function attachViewHandlers(){
         }
       };
     });
+
+    document.querySelectorAll('.send-select-checkbox').forEach(cb=>{
+      cb.onchange = (e)=>{
+        const id = cb.dataset.sendselect;
+        if(e.target.checked) sendMessagesSelected.add(id); else sendMessagesSelected.delete(id);
+        render();
+      };
+    });
+    const toggleSendSelectAll = (checked)=>{
+      const filtered = getFilteredSendMessagesClients();
+      if(checked) filtered.forEach(c=> sendMessagesSelected.add(c.id));
+      else filtered.forEach(c=> sendMessagesSelected.delete(c.id));
+      render();
+    };
+    const sendSelectAll = document.getElementById('sendSelectAll');
+    if(sendSelectAll) sendSelectAll.onchange = (e)=> toggleSendSelectAll(e.target.checked);
+    const sendSelectAllHead = document.getElementById('sendSelectAllHead');
+    if(sendSelectAllHead) sendSelectAllHead.onchange = (e)=> toggleSendSelectAll(e.target.checked);
+
+    const sendBulkBtn = document.getElementById('sendBulkBtn');
+    if(sendBulkBtn){
+      sendBulkBtn.onclick = ()=>{
+        if(sendMessagesSelected.size === 0) return;
+        const templateId = document.getElementById('sendBulkTemplateSelect').value;
+        const channel = document.getElementById('sendBulkChannelSelect').value;
+        const template = MESSAGE_TEMPLATES.find(t=>t.id===templateId);
+        if(!template){ alert('يرجى اختيار قالب رسالة'); return; }
+        const targets = clients.filter(c=> sendMessagesSelected.has(c.id));
+        const channelLabel = channel==='email' ? 'البريد الإلكتروني' : 'واتساب';
+        let skipped = 0;
+        const sendable = targets.filter(c=>{
+          if(channel==='email' && !c.email){ skipped++; return false; }
+          if(channel==='whatsapp' && !c.phone){ skipped++; return false; }
+          return true;
+        });
+        if(sendable.length===0){ alert('لا يوجد عملاء ببيانات تواصل مناسبة لهذه القناة.'); return; }
+        if(!confirm(`سيتم فتح ${channelLabel} لكل عميل من العملاء المحددين (${sendable.length})${skipped? ' — سيتم تجاوز '+skipped+' عميل بدون بيانات تواصل مناسبة':''}. هل تريد المتابعة؟`)) return;
+        sendable.forEach((c, i)=>{
+          setTimeout(()=>{
+            const text = fillTemplate(template.text, c);
+            if(channel==='email'){
+              window.open(gmailComposeLink(c.email, template.title, text), '_blank');
+              logSentMessage(c, 'إيميل', template.title, text);
+            }else{
+              window.open(waLinkWithText(c, text), '_blank');
+              logSentMessage(c, 'واتساب', template.title, text);
+            }
+          }, i * 400);
+        });
+        sendMessagesSelected.clear();
+        render();
+      };
+    }
   }
   else if(currentView === 'contactlog'){
-    document.getElementById('sentChannelFilter').onchange = (e)=>{ sentMessagesFilter.channel = e.target.value; render(); };
+    document.getElementById('clFromDate').onchange = (e)=>{ contactLogFilter.fromDate = e.target.value; render(); };
+    document.getElementById('clToDate').onchange = (e)=>{ contactLogFilter.toDate = e.target.value; render(); };
+    document.getElementById('clSearchBtn').onclick = ()=>{
+      contactLogFilter.fromDate = document.getElementById('clFromDate').value;
+      contactLogFilter.toDate = document.getElementById('clToDate').value;
+      render();
+    };
+    document.getElementById('clIncludeStatus').onchange = (e)=>{ contactLogFilter.includeStatus = e.target.checked; render(); };
+    document.getElementById('clIncludeMessages').onchange = (e)=>{ contactLogFilter.includeMessages = e.target.checked; render(); };
+    document.getElementById('clChannelFilter').onchange = (e)=>{ contactLogFilter.channel = e.target.value; render(); };
+    document.getElementById('exportContactLogBtn').onclick = exportContactLogExcel;
+    document.getElementById('shareContactLogBtn').onclick = shareContactLogExcel;
+    document.getElementById('shareContactLogTextBtn').onclick = shareContactLogText;
+    document.getElementById('printContactLogBtn').onclick = printContactLogReport;
   }
   else if(currentView === 'settings'){
     document.getElementById('logoUpload').onchange = (e)=>{
@@ -2779,6 +4915,18 @@ function attachViewHandlers(){
     };
     const removeLogoBtn = document.getElementById('removeLogoBtn');
     if(removeLogoBtn) removeLogoBtn.onclick = ()=>{ systemLogo = null; saveLogo(); applyLogoDisplays(); render(); };
+
+    document.getElementById('saveNavLabelsBtn').onclick = ()=>{
+      document.querySelectorAll('.nav-label-input').forEach(input=>{
+        const key = input.dataset.navlabelkey;
+        const val = input.value.trim();
+        if(val) navLabelOverrides[key] = val;
+        else delete navLabelOverrides[key];
+      });
+      saveNavLabelOverrides();
+      alert('تم حفظ مسمّيات القوائم. سيتم إعادة تحميل الصفحة لتطبيقها.');
+      location.reload();
+    };
 
     document.querySelectorAll('[data-removelist]').forEach(btn=>{
       btn.onclick = ()=>{
@@ -2835,10 +4983,28 @@ document.getElementById('importExcelInput').addEventListener('change', (e)=>{
   e.target.value = '';
 });
 
+/* ============== Robust close: click outside modal, or press Escape ============== */
+document.querySelectorAll('.overlay').forEach(overlayEl=>{
+  overlayEl.addEventListener('click', (e)=>{
+    if(e.target === overlayEl){
+      overlayEl.classList.add('hidden');
+    }
+  });
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.overlay:not(.hidden)').forEach(overlayEl=>{
+      overlayEl.classList.add('hidden');
+    });
+  }
+});
+
 /* ============== Init ============== */
 loadData();
 if(new URLSearchParams(location.search).get('public') === '1'){
   renderPublicForm();
+}else if(new URLSearchParams(location.search).get('publicmeeting') === '1'){
+  renderPublicMeetingForm();
 }else{
   const savedUserId = localStorage.getItem('fcrm_logged_in_user');
   if(savedUserId && users.find(u=>u.id===savedUserId)){
@@ -2849,6 +5015,5 @@ if(new URLSearchParams(location.search).get('public') === '1'){
   }
 }
 </script>
-
-
-</body></html>
+</body>
+</html>
